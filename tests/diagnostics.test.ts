@@ -62,3 +62,27 @@ for (const operation of ['read', 'upload', 'download']) test(`S27 nested ${opera
  assert.doesNotMatch(rpc,/PRIVATE_REPO_MARKER|QUERY_MARKER|SYNTHETIC_CONFIGURED_PASSWORD/);
  assert.match(rpc,/ECONNRESET/); assert.match(rpc,/diagnostics\.test\.js/);
 });
+
+for (const route of ['repositories', 'formats', 'assets', 'search']) test(`S27 nested ${route} body failures redact resources`, async t => {
+ const {createCli} = await import('@eyeauras/cli-factory');
+ const {createCliFixture} = await import('@eyeauras/cli-factory/testing');
+ const {createDefinition} = await import('../src/cli.js');
+ const resource = 'https://example.test/PRIVATE_BODY_MARKER?x=QUERY_BODY_MARKER';
+ const f = await createCliFixture(t,{applicationId:'nexus-cli',profiles:[{name:'lab',values:{url:'https://nexus.example.test',authMode:'anonymous'}}]});
+ const a = f.createApplication(runtime => createCli({...createDefinition(),runtime:{...runtime,fetch:async input => {
+  const native = Object.assign(new Error('socket failed '+String(input)),{code:'ECONNRESET'});
+  return new Response(new ReadableStream({start(controller){controller.error(new Error('body interrupted',{cause:native}));}}),{status:200});
+ }}}));
+ const argv = route==='formats' ? ['formats','upload-specs','get',resource]
+  : route==='search' ? ['search','assets','--repository',resource]
+  : [route,'get',resource];
+ for(const flags of [[],['--verbose'],['--json'],['--json','--verbose']]) {
+  const r = await f.run(a,[...argv,'--profile','lab',...flags]); assert.equal(r.exitCode,1);
+  assert.doesNotMatch(r.stderr,/PRIVATE_BODY_MARKER|QUERY_BODY_MARKER/);
+  assert.match(r.stderr,/socket failed/);
+  if(flags.includes('--verbose') || flags.includes('--json')) assert.match(r.stderr,/ECONNRESET/);
+  if(flags.includes('--verbose')) assert.match(r.stderr,/diagnostics\.test\.js/);
+ }
+ const rpc = JSON.stringify(await f.rpc(a,[[...argv,'--profile','lab','--verbose']]));
+ assert.doesNotMatch(rpc,/PRIVATE_BODY_MARKER|QUERY_BODY_MARKER/);assert.match(rpc,/ECONNRESET/);
+});
