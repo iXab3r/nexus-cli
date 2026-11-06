@@ -122,13 +122,13 @@ for(const fault of ['publication','cleanup'])for(const mode of ['json','rpc'])te
  }finally{t.mock.restoreAll();syncBuiltinESMExports();}
 });
 
-for (const invalid of ['json', 'utf8', 'null', 'array', 'fields']) {
+for (const invalid of ['json', 'utf8', 'null', 'array', 'fields', 'url']) {
  for (const mode of ['json', 'rpc']) test(`asset metadata ${invalid} is safely rejected in ${mode}`, async t => {
   const dir = await mkdtemp(join(await realpath(tmpdir()), 'nexus-decode-'));
   t.after(() => rm(dir, {recursive: true, force: true}));
   const marker = 'SYNTHETIC_RESPONSE_MARKER';
   let contentRequests = 0;
-  const payload = invalid === 'json' ? marker : invalid === 'utf8' ? Uint8Array.of(0xff) : invalid === 'null' ? 'null' : invalid === 'array' ? '[]' : JSON.stringify({path: marker, downloadUrl: null});
+  const payload = invalid === 'json' ? marker : invalid === 'utf8' ? Uint8Array.of(0xff) : invalid === 'null' ? 'null' : invalid === 'array' ? '[]' : JSON.stringify({path: marker, downloadUrl: invalid === 'url' ? marker : null});
   const {fixture: f, app: a} = await offlineCli(t,
    http.get('https://nexus.example.test/service/rest/v1/assets/id', () => new HttpResponse(payload)),
    http.get('https://nexus.example.test/content', () => {contentRequests++; return new HttpResponse('bytes');}));

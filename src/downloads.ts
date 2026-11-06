@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { CliError, FilePublicationError, HttpError, Permission, command, diagnosticCause, fetchWithRedirects, publishFile, readResponseBody, recordView, type CommandContext } from '@eyeauras/cli-factory';
-import { authorization, checked, pathSegment } from './client.js';
+import { CliError, FilePublicationError, HttpError, Permission, command, diagnosticCause, fetchWithRedirects, publishFile, recordView, type CommandContext } from '@eyeauras/cli-factory';
+import { authorization, pathSegment } from './client.js';
+import { document } from './mutations.js';
 /** Nexus owns transport trust and integrity; Core owns exclusive file publication. */
 async function download(c: CommandContext, id: string | undefined, o: Record<string, unknown>) {
  const installation=new URL(String(c.profile.values.url));
@@ -15,9 +16,11 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
  };
  let url:string; let name:string;
  if(id!==undefined) {
-  const r=await checked(c,'assets/'+pathSegment(id));
-  const asset=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(await readResponseBody(r,{maxBytes:4194304,signal:c.signal})));
-  if(typeof asset.downloadUrl!=='string' || typeof asset.path!=='string') throw new CliError('Invalid asset download metadata.',{code:'nexus.decodeFailed'});
+  const asset=await document(c,'assets/'+pathSegment(id));
+  if(!asset || typeof asset!=='object' || Array.isArray(asset) || typeof asset.downloadUrl!=='string' || typeof asset.path!=='string') throw new CliError('Invalid asset download metadata.',{code:'nexus.decodeFailed'});
+  try { new URL(asset.downloadUrl); } catch(cause) {
+   throw new CliError('Invalid asset download URL.',{code:'nexus.decodeFailed',cause:diagnosticCause(cause,[],'Invalid Nexus download URL.')});
+  }
   url=asset.downloadUrl; name=asset.path.split('/').at(-1)!;
  } else {
   const q=new URLSearchParams();
