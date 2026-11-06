@@ -47,3 +47,21 @@ S17 removes listFormatsUploadSpecs: demonstrated get uses only getFormatsUploadS
 ## Source privacy inspection
 
 Resolved synthetic placeholder: official schema JSON pointer `/components/schemas/TerraformSigningAttributes/properties/keypair/example` contains PGP boundary labels with only `...` between them, not key material. Source bytes and SHA-256 remain unchanged. No deployed responses or credentials are fixtures.
+
+
+Artifact coordinates use `--artifact-version` in Maven upload and search. Root
+`--version` reports the executable version; the former leaf spelling was consumed
+by that root option before the command handler. Wire keys remain `version` for
+search and `maven2.version` for Maven publication.
+
+Uploads use Node 22's file-backed Blob and native multipart FormData. The CLI
+requires a regular file (rejecting a final symlink) and does not buffer the whole
+file or impose the provisional 64 MiB ceiling. Payload memory is streamed by the
+runtime; file length and server limits bound the transfer. Keep the source file
+unchanged throughout the operation: Node checks for modification during reads,
+but this is not a filesystem snapshot or a hostile-filesystem guarantee. Opening
+and sending respect cancellation; cancellation or read failure after sending
+starts has unknown remote outcome. There is no automatic retry. Only HTTP 204
+acknowledges a mutation; it supplies no new component ID, atomicity or rollback
+proof. Maven may generate POM/checksum assets; repository-level edit permission
+is recommended for that workflow (see source contracts).
