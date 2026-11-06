@@ -121,3 +121,34 @@ for(const fault of ['publication','cleanup'])for(const mode of ['json','rpc'])te
  if(fault==='cleanup')assert.equal(await readFile(join(dir,'widget.jar'),'utf8'),'hello');else await assert.rejects(readFile(join(dir,'widget.jar')));
  }finally{t.mock.restoreAll();syncBuiltinESMExports();}
 });
+
+for (const invalid of ['json', 'utf8', 'null', 'array', 'fields']) {
+ for (const mode of ['json', 'rpc']) test(`asset metadata ${invalid} is safely rejected in ${mode}`, async t => {
+  const dir = await mkdtemp(join(await realpath(tmpdir()), 'nexus-decode-'));
+  t.after(() => rm(dir, {recursive: true, force: true}));
+  const marker = 'SYNTHETIC_RESPONSE_MARKER';
+  let contentRequests = 0;
+  const payload = invalid === 'json' ? marker : invalid === 'utf8' ? Uint8Array.of(0xff) : invalid === 'null' ? 'null' : invalid === 'array' ? '[]' : JSON.stringify({path: marker, downloadUrl: null});
+  const {fixture: f, app: a} = await offlineCli(t,
+   http.get('https://nexus.example.test/service/rest/v1/assets/id', () => new HttpResponse(payload)),
+   http.get('https://nexus.example.test/content', () => {contentRequests++; return new HttpResponse('bytes');}));
+  await f.run(a, ['profile','configure','lab','--url','https://nexus.example.test','--auth-mode','anonymous']);
+  const args = ['assets','download','id','--profile','lab','--output',join(dir,'artifact.bin')];
+  let diagnostics: string;
+  if (mode === 'json') {
+   const result = await f.run(a, [...args,'--json'], {cwd: dir});
+   assert.equal(result.exitCode, 1);
+   assert.equal(result.stdout, '');
+   diagnostics = result.stderr;
+  } else {
+   const replies = await f.rpc(a, [args], {cwd: dir}) as any[];
+   assert.ok(replies[0].error);
+   diagnostics = JSON.stringify(replies);
+  }
+  assert.match(diagnostics, /nexus.decodeFailed/);
+  assert.doesNotMatch(diagnostics, /SYNTHETIC_RESPONSE|SYNTHETIC_RE/);
+  assert.equal(contentRequests, 0);
+  const {readdir} = await import('node:fs/promises');
+  assert.deepEqual(await readdir(dir), []);
+ });
+}
