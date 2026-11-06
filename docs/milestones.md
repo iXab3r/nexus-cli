@@ -27,7 +27,7 @@ this document records the approved grouping, not completion status.
 M5 [Reliable artifact roundtrip](https://github.com/iXab3r/nexus-cli/milestone/5):
 S25–S28 (#608–#611), original Maven POM/assets, direct content, diagnostics and offline CI recipe.
 M6 [Deliberate search and discovery](https://github.com/iXab3r/nexus-cli/milestone/6):
-S29–S30 (#612–#613); P2 discovery remains conditional backlog pending sequencing review.
+S29–S30 (#612–#613), including bounded prerequisite discovery as committed M6 scope.
 Material designs require independent parent review before implementation. S24 stays deferred.
 S31 token administration (#614), public distribution (#615) and live qualification (#616)
 are conditional backlog outside these implementation commitments. Release and named service
