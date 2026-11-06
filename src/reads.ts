@@ -1,3 +1,4 @@
+import { downloadCommand } from './downloads.js';
 import { deleteCommand, uploadCommand } from './mutations.js';
 import {
   CliError,
@@ -300,6 +301,7 @@ export const readCommands = [
   ...["components", "assets"].map((kind) =>
     command(kind, "Inspect repository metadata", [
       listing("list", kind),
+      ...(kind === "assets" ? [downloadCommand()] : []),
       deleteCommand(kind),
       ...(kind === "components" ? [uploadCommand] : []),
       command(
@@ -331,6 +333,7 @@ export const readCommands = [
     ]),
   ),
   command("search", "Find repository metadata", [
+    downloadCommand(true),
     listing("components", "search", true),
     listing("assets", "search/assets", true),
   ]),

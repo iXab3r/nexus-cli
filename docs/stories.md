@@ -203,6 +203,7 @@ As a developer, I want to download a known asset with integrity check.
 nexus-cli assets download ASSET_ID --output ./widget.jar --sha256 EXPECTED
 ```
 
+- Destination defaults to invocation cwd with a safe asset basename; `--output` may be relative or absolute. No implicit profile files.
 - Observable result: destination, byte count, computed digest, verified flag.
 - Acceptance: Given matching digest, atomically finalize; mismatch/interruption/disk full exits 1 and reports actual cleanup/published state; existing destination fails; missing body never produces final file.
 - Permissions and boundaries: ReadOnly remote category; explicit local write; no resume/overwrite in initial scope.
@@ -218,6 +219,7 @@ As a developer, I want to download a uniquely selected search result.
 nexus-cli search download --repository releases --name widget --artifact-version 1.0 --output ./widget.jar
 ```
 
+- Destination defaults to invocation cwd with the safe final target basename; optional `--output` may be relative or absolute. No implicit profile files.
 - Observable result: destination and bytes; integrity unavailable unless expected checksum provided.
 - Acceptance: Given 302 follow scoped redirects; 400 ambiguity/404 absent exits 1 without file; Core same-host HTTP-to-HTTPS credential continuity (including non-default ports), unrelated-origin stripping, loop rejection and HTTPS downgrade rejection tested.
 - Permissions and boundaries: No arbitrary first hit; never forward credentials to unrelated origin.
@@ -340,7 +342,7 @@ nexus-cli repositories hosted raw update raw-releases --online false
 
 ## Source-closed acceptance additions
 
-S15/S16: retain --output and no overwrite; delivery depends on separately approved additive Core publishFile seam, not fake AppData. Include initial URL origin validation, redirect chain stripping, byte/length/hash validation and truthful cleanup outcomes from product-contract.md.
+S15/S16: retain --output and no overwrite; delivery uses the published Core 0.6.0 publishFile API. Include initial URL origin validation, redirect chain stripping, byte/length/hash validation and truthful cleanup outcomes from product-contract.md.
 
 S18: repository browse/read admission and path EDIT are separate server checks; model selector denial before write. S19: explicitly send generation=true and packaging=jar; generated POM and checksum assets do not have a separate selector check in the pinned path. Report acknowledged upload, never exact one-asset creation or atomic rollback; recommend repository-level edit for this supported workflow.
 

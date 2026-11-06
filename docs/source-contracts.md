@@ -1,6 +1,6 @@
 # Source-backed contracts
 
-Nexus source: [release-3.96.3-01](https://github.com/sonatype/nexus-public/tree/release-3.96.3-01), tree `829f297c35984a5fac590a366e949cd9a9a2eb79`. Framework: [v0.5.5 pinned source](https://github.com/iXab3r/EyeAuras.CliFactory/tree/9cfedfce58132e650eba2406aedd14b12736d5ff). These conclusions establish offline contracts, not live compatibility. S24 descriptions retain deferred design only.
+Nexus source: [release-3.96.3-01](https://github.com/sonatype/nexus-public/tree/release-3.96.3-01), tree `829f297c35984a5fac590a366e949cd9a9a2eb79`. Framework: [v0.6.0 pinned source](https://github.com/iXab3r/EyeAuras.CliFactory/tree/aebe591ac51422e8feaa1b061344db99e39ad173). These conclusions establish offline contracts, not live compatibility. S24 descriptions retain deferred design only.
 
 ## Hosted GET and PUT
 
@@ -12,15 +12,18 @@ Under `public/common/components/nexus-repository-services/src/main/java/org/sona
 
 Concrete S23 defaults: online=true, strictContentTypeValidation=true, writePolicy=ALLOW_ONCE, raw.contentDisposition=ATTACHMENT; cleanup omitted, component proprietaryComponents=false. These explicit CLI defaults are distinct from GET defaults. S24 projects name, online, full storage, recognized cleanup/component and supported raw disposition; omit format/type/url. Preserve false/empty values. GET normalizes legacy null, so byte-for-byte configuration preservation is impossible: promise supported effective settings only. Reject unknown fields or non-default hosted forwarding values before PUT, rather than silently claim preservation. No ETag/If-Match enforcement appears in this resource update path: GET/PUT can overwrite another writer. Recommend include S24 only with explicit owner acceptance of this limitation and exclusive administrative operation practice; no client reread makes it atomic.
 
-## File destination: concrete framework owner proposal
+## File destination: reviewed Core API
 
-Pinned `packages/core/src/profile-file.ts`: publishProfileFile accepts appDataDirectory plus basename, publishes to downloads and stages in temp; saveProfileFile wraps it for generated content; downloadCommands manages profile files. There is no arbitrary output path parameter. Passing a fake AppData, post-publication move/copy or duplicating publication logic is rejected. Preserve preferred `--output` UX in S15/S16.
+Core commit `5e05fe4c4cd77e605d517dd156a61104b4322f67` exports
+`publishFile({ cwd, name, output?, maxBytes, signal, openResponse, inspectResponse, validateFile })`.
+Downloads default to invocation cwd with a safe resource basename. Optional `--output`
+accepts relative or absolute paths; the parent must exist. Core owns private same-directory
+staging, exclusive no-clobber publication, identity checks and truthful published/cleanupFailed
+errors. No implicit profile files or registration. The old profile publisher was removed.
 
-Actual pinned production callers: `integrations/teamcity/src/downloads.ts:96`, `integrations/youtrack/src/attachment-download.ts:153` call publishProfileFile; `integrations/youtrack/src/articles.ts:43` and `issue-batch.ts:119` call saveProfileFile. TeamCity cli.ts:187 and YouTrack cli.ts:87 register downloadCommands. Core index.ts exports the API. No other TS production callers in the pinned tree search. Relevant tests: core profile-file.test.ts (stream/hash, budgets, abort, symlink/race, exclusive publication, partial writes, cleanup truth); profile-downloads.test.ts and view.test.ts (wrappers/list/delete). Integration download and article/batch tests exercise their existing profile results. This is pinned monorepo consumer analysis, not a claim about every private downstream consumer.
-
-Approved additive API: `publishFile({ destinationPath, maxBytes, signal, openResponse, inspectResponse, validateFile })`, returning path/bytes/SHA256 and retaining published/cleanupFailed errors. Factor existing implementation internally; keep publishProfileFile, saveProfileFile, PublishedProfileFile and downloadCommands signatures/results unchanged. New API requires an existing destination parent, resolves relative output once against invocation cwd, creates private same-directory staging, exclusively links destination, validates parent/staging identity and refuses overwrite/symlink/racing creators. No implicit mkdir tree or profile registration. Shared engine preserves current profile staging contract. Owner approved the extension separately; framework implementation is outside this repository; Nexus pin remains unchanged until reviewed adoption.
-
-Acceptance for extension: existing consumer tests unchanged; absolute/relative arbitrary output, non-existing parent, hostile final symlink, racing creator, parent replacement, unsupported hard links, same-filesystem staging, byte cap, truncated/compressed body, abort before/after publish, checksum mismatch, partial writes and cleanup failure with truthful published state. Verify profile list/delete cannot discover/manage arbitrary outputs. Framework implementation/adoption is a concrete M2 prerequisite, not unfinished source research. No current-version upgrade is required by this proposal.
+Nexus consumes this API through published Core 0.6.0, release commit
+`aebe591ac51422e8feaa1b061344db99e39ad173`. The exact registry dependency and lockfile
+replace the temporary local artifact overlay.
 
 ## Exact result rendering
 

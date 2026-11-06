@@ -14,8 +14,10 @@ The 442 operations and 120 groups are a coverage census, not an implementation p
 
 Every milestone requires committed red acceptance evidence before implementation, green offline real-command-tree tests, package install smoke and fresh independent review at the final head. Parent owns PRs, acceptance and closure. Stories and operations stay open until their behavior is accepted at that head; dependency links do not prove implementation.
 
-CliFactory is pinned exactly to 0.5.5. The separately approved arbitrary-output extension is an M2 prerequisite; no framework edits belong here. No live compatibility, npm publication or TeamCity configuration is authorized by this plan.
+CliFactory is pinned exactly to 0.6.0. It includes the approved arbitrary-output publishFile extension; no framework edits belong here. No live compatibility, npm publication or TeamCity configuration is authorized by this plan.
 
-## Tracker checkpoint
+## Delivery tracking
 
-This bounded planning slice publishes 23 stories and four milestones only. The 442 operation issues and 120 group roots, and real GitHub blocked-by links, remain pending the next inventory phase. Milestone assignment records the approved grouping, not implementation readiness. Planning closure and production execution remain gated on that inventory/dependency phase. GitHub owns ongoing story acceptance and status; documents own durable product behavior. No runtime scaffold exists.
+The runtime scaffold and generated API inventory are present. GitHub Issues owns
+operation dependencies, milestone readiness, review findings and final acceptance;
+this document records the approved grouping, not completion status.

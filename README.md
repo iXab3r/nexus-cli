@@ -1,11 +1,12 @@
 # nexus-cli
 
-Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.5.5**.
+Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.6.0**.
 
 M1 provides profile configuration, Basic or explicit anonymous access, local
 credential status/logout, service availability, and repository list/detail.
-M2 slice S08–S14 provides components/assets list/get and search components/assets.
-Transfers and mutations remain unimplemented; M2 is not complete. Tests use the pinned 3.96.3-01 specification and synthetic
+The command tree provides components/assets list/get, search and downloads,
+raw/Maven uploads, deletion, and raw hosted inspection/create.
+Final story and milestone acceptance is tracked in GitHub Issues. Tests use the pinned 3.96.3-01 specification and synthetic
 responses; no live Nexus version or edition compatibility is claimed.
 
 ```sh
@@ -34,7 +35,7 @@ Core supplies the profile/auth human renderer and JSON/RPC envelopes; stdin
 credentials require ordinary CLI execution, not RPC. No credential environment
 variable or password command-line flag is supported.
 
-Service leaves use the profile's ReadOnly gate. Repository lists show only server
+Read service leaves use the profile's ReadOnly gate; mutations require Update. Repository lists show only server
 visibility, including an empty success; they are not full installation inventories.
 Summary fields are name, format, type, URL and online (`null` when the server omits
 online). A single response is limited to 4 MiB and lists to 1,000 entries.
@@ -103,11 +104,12 @@ on stdout and diagnostics on stderr; RPC puts it in error.data.result.
 There is no snapshot or duplicate-free guarantee across server mutations.
 Narrow server filters when a single page exceeds a limit.
 
-S15/S16 downloads await the separately approved Core publishFile extension and
-reviewed adoption. This slice adds no alternate file destination behavior.
-The installed-package smoke additionally executes an assets read against a
-synthetic fetch response with socket networking disabled. This is offline
-packaging proof, not live Nexus compatibility evidence.
+Downloads use Core 0.6.0 publishFile with invocation-cwd defaults and optional
+`--output`. The parent directory must exist; existing destinations are never overwritten.
+Byte limits and optional SHA256 validation apply before publication. Cleanup failures
+report the actual publication state and exit 1.
+The installed-package smoke exercises asset/search downloads and JSON/RPC failure
+results, reads, uploads and hosted commands with synthetic responses and sockets blocked.
 
 An enumeration result budget must fit the initial checkpoint, including any supplied
 continuation token. Otherwise the command fails before HTTP with no partial result.
