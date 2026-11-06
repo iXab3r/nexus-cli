@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { http, HttpResponse } from "msw";
 import { offlineCli } from "./offline.js";
 const base = "https://nexus.example.test/service/rest/v1/";
@@ -67,9 +68,16 @@ for (const kind of ["assets", "components"])
         assert.match(r.stderr, /nexus.mutation.outcomeUnknown/);
     });
 test("S17 upload specification", async (t) => {
+  const schema = JSON.parse(readFileSync("docs/api/nexus-openapi.json", "utf8"));
+  const route = Object.entries(schema.paths).find(
+    ([, methods]) => (methods as any).get?.operationId === "getFormatsUploadSpecs",
+  )?.[0];
+  assert.equal(route, "/v1/formats/{format}/upload-specs");
+  const specificationUrl =
+    "https://nexus.example.test/service/rest" + route.replace("{format}", "raw");
   const { fixture: f, app: a } = await offlineCli(
     t,
-    http.get(base + "formats/upload-specs/raw", () =>
+    http.get(specificationUrl, () =>
       HttpResponse.json({
         format: "raw",
         multipleUpload: true,
@@ -215,7 +223,7 @@ for (const status of [401, 403, 404, 500, 200])
   test(`upload specs rejects ${status}`, async (t) => {
     const { fixture: f, app: a } = await offlineCli(
       t,
-      http.get(base + "formats/upload-specs/raw", () =>
+      http.get(base + "formats/raw/upload-specs", () =>
         HttpResponse.json({}, { status }),
       ),
     );
@@ -389,7 +397,7 @@ for (const kind of ["assets", "components"])
 test("S17 human specification fields", async (t) => {
   const { fixture: f, app: a } = await offlineCli(
     t,
-    http.get(base + "formats/upload-specs/raw", () =>
+    http.get(base + "formats/raw/upload-specs", () =>
       HttpResponse.json({
         format: "raw",
         multipleUpload: true,
