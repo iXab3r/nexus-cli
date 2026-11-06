@@ -22,3 +22,12 @@ for(const upload of [false,true]) for(const status of [400,401,403]) test(`S27 $
  }
  const rpc=JSON.stringify(await f.rpc(a,[[...argv,'--profile','lab','--verbose']]));assert.match(rpc,/releases/);assert.doesNotMatch(rpc,/SYNTHETIC_BODY_MARKER/);
 });
+for(const repository of ['bad\u001b[31mSYNTHETIC_LABEL', 'https://example.test/private?marker=SYNTHETIC_LABEL', 'x'.repeat(1000)]) test('S27 unsafe repository labels stay out of diagnostics',async t=>{
+ const {fixture:f,app:a}=await offlineCli(t,http.get(base+'repositories/*',()=>new HttpResponse('SYNTHETIC_BODY_MARKER',{status:403})));
+ await f.run(a,['profile','configure','lab','--url','https://nexus.example.test','--auth-mode','anonymous']);
+ const argv=['repositories','get',repository,'--profile','lab'];
+ for(const flags of [[],['--verbose'],['--json'],['--json','--verbose']]){
+ const r=await f.run(a,[...argv,...flags]);assert.equal(r.exitCode,1);assert.match(r.stderr,/selected repository/);assert.doesNotMatch(r.stderr,/SYNTHETIC_LABEL|SYNTHETIC_BODY_MARKER|x{100}/);
+ }
+ assert.doesNotMatch(JSON.stringify(await f.rpc(a,[[...argv,'--verbose']])),/SYNTHETIC_LABEL|SYNTHETIC_BODY_MARKER|x{100}/);
+});

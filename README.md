@@ -192,3 +192,13 @@ Existing destinations are never overwritten. `--sha256` verifies an expected
 the same streaming, redirect trust, cancellation, cleanup reporting and default
 1 GiB cap (`--max-bytes` overrides it) as asset/search downloads. Results report
 path, bytes, SHA256 and verified. This command does not resolve package dependencies.
+
+Failed Nexus requests identify the operation and, when available, a conservative
+repository label (ASCII letters, digits, dots, underscores and hyphens, up to 64
+characters). Other names appear as “the selected repository” in diagnostics.
+HTTP 401 means authentication was rejected for that request; HTTP 403 means Nexus
+denied the action. Upload HTTP 400 hints name submitted fields and repository
+policy checks; they do not diagnose the server response. Response bodies are not
+included in errors. Local Update denial provides `permissions grant Update`
+guidance before any HTTP request; enabling the local gate does not grant server
+rights. An interrupted mutation still has an unknown outcome and is not retried.

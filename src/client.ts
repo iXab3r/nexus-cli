@@ -1,3 +1,4 @@
+import { readContext, statusMessage } from "./diagnostics.js";
 import {
   CliError,
   HttpError,
@@ -47,7 +48,7 @@ export async function request(
       { headers, signal: context.signal },
     );
   } catch (cause) {
-    throw new CliError("Could not read Nexus service.", {
+    throw new CliError(readContext(path) + ": request failed.", {
       code: "nexus.requestFailed",
       cause: diagnosticCause(
         cause,
@@ -63,7 +64,7 @@ export async function checked(
   const response = await request(context, path);
   if (response.status !== 200) {
     void response.body?.cancel();
-    throw new HttpError(response.status, "Nexus request was refused.");
+    throw new HttpError(response.status, statusMessage(response.status, readContext(path)));
   }
   return response;
 }
@@ -112,7 +113,7 @@ export async function repositories(
       ).toString("utf8"),
     );
   } catch (cause) {
-    throw new CliError("Could not decode Nexus repositories.", {
+    throw new CliError(readContext("repositories" + (name === undefined ? "" : "/" + pathSegment(name))) + ": could not decode response.", {
       code: "nexus.decodeFailed",
       cause: diagnosticCause(cause, [], "Invalid or incomplete JSON response."),
     });

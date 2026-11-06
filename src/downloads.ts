@@ -1,3 +1,4 @@
+import { operationContext, statusMessage } from "./diagnostics.js";
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { CliError, FilePublicationError, HttpError, Permission, command, diagnosticCause, fetchWithRedirects, publishFile, recordView, type CommandContext } from '@eyeauras/cli-factory';
@@ -5,6 +6,7 @@ import { authorization, pathSegment } from './client.js';
 import { document } from './mutations.js';
 /** Nexus owns transport trust and integrity; Core owns exclusive file publication. */
 async function download(c: CommandContext, id: string | undefined, o: Record<string, unknown>, content=false) {
+ const diagnostic=operationContext('Download Nexus artifact', typeof o.repository==='string'?o.repository:undefined);
  const installation=new URL(String(c.profile.values.url));
  const eligible=(u:URL)=>u.origin===installation.origin || (installation.protocol==='http:' && u.protocol==='https:' && u.hostname===installation.hostname);
  let previous=installation;
@@ -44,13 +46,13 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
  try {
   if(id===undefined && !content) {
    searchResponse=await fetchWithRedirects(transport,url,{headers,signal:c.signal});
-   if(searchResponse.status!==200) {void searchResponse.body?.cancel(); throw new HttpError(searchResponse.status,'Nexus search download was refused.');}
+   if(searchResponse.status!==200) {void searchResponse.body?.cancel(); throw new HttpError(searchResponse.status,statusMessage(searchResponse.status,diagnostic));}
    name=decodeURIComponent(previous.pathname.split('/').at(-1)??'');
   }
   const saved=await publishFile({cwd:c.cwd,name,output:o.output as string|undefined,maxBytes:Number(o.maxBytes??1073741824),signal:c.signal,
    openResponse:()=>searchResponse?Promise.resolve(searchResponse):fetchWithRedirects(transport,url,{headers,signal:c.signal}),
    inspectResponse(r){
-    if(r.status!==200) throw new HttpError(r.status,'Nexus download was refused.');
+    if(r.status!==200) throw new HttpError(r.status,statusMessage(r.status,diagnostic));
     if(!r.body) throw new FilePublicationError('Download response has no body.');
     const n=r.headers.get('content-length');
     if(n!==null && !r.headers.get('content-encoding')) {if(!/^\d+$/.test(n)||!Number.isSafeInteger(Number(n))) throw new FilePublicationError('Invalid download length.'); length=Number(n);}
@@ -64,7 +66,7 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
   void searchResponse?.body?.cancel().catch(()=>undefined);
   if(cause instanceof HttpError) throw cause;
   const httpCause=cause instanceof FilePublicationError && cause.cause instanceof HttpError ? cause.cause : undefined;
-  throw new CliError('Could not publish Nexus download.',{code:httpCause?.code??'nexus.downloadFailed',exitCode:1,result:{published:cause instanceof FilePublicationError && cause.published,cleanupFailed:cause instanceof FilePublicationError && cause.cleanupFailed},cause:diagnosticCause(cause,raw?[raw,JSON.parse(raw).password,authorization(raw)]:[])});
+  throw new CliError(diagnostic+': could not publish Nexus download.',{code:httpCause?.code??'nexus.downloadFailed',exitCode:1,result:{published:cause instanceof FilePublicationError && cause.published,cleanupFailed:cause instanceof FilePublicationError && cause.cleanupFailed},cause:diagnosticCause(cause,raw?[raw,JSON.parse(raw).password,authorization(raw)]:[])});
  }
 }
 export function downloadCommand(search=false, content=false){return command(search||content?'download':'download <id>','Download an artifact safely',({args,options},c)=>download(c,search||content?undefined:String(args.id),options,content),{permission:Permission.ReadOnly,

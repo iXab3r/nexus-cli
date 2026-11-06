@@ -1,3 +1,4 @@
+import { operationContext, readContext, statusMessage } from "./diagnostics.js";
 import { lstat } from "node:fs/promises";
 import { openAsBlob } from "node:fs";
 import { basename, resolve } from "node:path";
@@ -24,6 +25,7 @@ export async function mutate(
   method: string,
   body?: FormData | string,
   expectedStatus = 204,
+  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven" } = { operation: "Mutate Nexus metadata" },
 ) {
   const raw =
     c.profile.values.authMode === "anonymous"
@@ -43,7 +45,7 @@ export async function mutate(
     );
   } catch (cause) {
     throw new CliError(
-      "Nexus mutation outcome is unknown. Remote changes may have occurred.",
+      operationContext(diagnostic.operation, diagnostic.repository) + ": Nexus mutation outcome is unknown. Remote changes may have occurred.",
       {
         code: "nexus.mutation.outcomeUnknown",
         cause: diagnosticCause(
@@ -58,7 +60,7 @@ export async function mutate(
   if (response.status !== expectedStatus)
     throw new HttpError(
       response.status,
-      "Nexus mutation did not return its expected acknowledgment. Partial changes may exist.",
+      statusMessage(response.status, operationContext(diagnostic.operation, diagnostic.repository), diagnostic.upload) + " Partial changes may exist.",
     );
 }
 /** Decode one bounded service document without echoing response bodies. */
@@ -74,7 +76,7 @@ export async function document(c: CommandContext, path: string): Promise<any> {
       ),
     );
   } catch (cause) {
-    throw new CliError("Could not decode Nexus metadata.", {
+    throw new CliError(readContext(path) + ": could not decode Nexus metadata.", {
       code: "nexus.decodeFailed",
       cause: diagnosticCause(
         cause,
@@ -142,7 +144,7 @@ export const uploadCommand = command(
         if (format === "maven" && o.pom !== undefined) {
           if (typeof o.repository !== "string" || !o.repository.trim()) usage("Repository must be nonempty.");
           const form = await pomImport(o, c);
-          await mutate(c, "components?" + new URLSearchParams({repository: String(o.repository)}), "POST", form);
+          await mutate(c, "components?" + new URLSearchParams({repository: String(o.repository)}), "POST", form, 204, {operation: "Upload Maven artifacts", repository: String(o.repository), upload: "maven"});
           return {repository: o.repository, acknowledged: true};
         }
         if (format === "maven" && o.asset !== undefined) usage("Companion assets require --pom.");
@@ -205,6 +207,8 @@ export const uploadCommand = command(
             new URLSearchParams({ repository: String(o.repository) }),
           "POST",
           form,
+          204,
+          {operation: format === "raw" ? "Upload raw artifacts" : "Upload Maven artifacts", repository: String(o.repository), upload: format as "raw" | "maven"},
         );
         return { repository: String(o.repository), acknowledged: true };
       },
