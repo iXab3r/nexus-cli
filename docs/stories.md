@@ -158,7 +158,7 @@ nexus-cli assets get ASSET_ID
 As a developer, I want to find a component by coordinates.
 
 ```sh
-nexus-cli search components --repository releases --name widget --version 1.0
+nexus-cli search components --repository releases --name widget --artifact-version 1.0
 ```
 
 - Observable result: matching components plus next token.
@@ -215,7 +215,7 @@ Assignment: see [approved milestones](milestones.md).
 As a developer, I want to download a uniquely selected search result.
 
 ```sh
-nexus-cli search download --repository releases --name widget --version 1.0 --output ./widget.jar
+nexus-cli search download --repository releases --name widget --artifact-version 1.0 --output ./widget.jar
 ```
 
 - Observable result: destination and bytes; integrity unavailable unless expected checksum provided.
@@ -258,7 +258,7 @@ Assignment: see [approved milestones](milestones.md).
 As a publisher, I want to publish Maven coordinates.
 
 ```sh
-nexus-cli components upload maven --repository maven-releases --group com.example --artifact widget --version 1.0 --file ./widget.jar --extension jar
+nexus-cli components upload maven --repository maven-releases --group com.example --artifact widget --artifact-version 1.0 --file ./widget.jar --extension jar
 ```
 
 - Observable result: publication acknowledgment.

@@ -101,7 +101,7 @@ export async function enumerate(
   for (const [key, wire] of Object.entries({
     repository: "repository",
     name: "name",
-    version: "version",
+    artifactVersion: "version",
     group: "group",
     format: "format",
     q: "q",
@@ -280,7 +280,7 @@ function listing(name: string, path: string, search = false) {
         ...(search
           ? [
               "name",
-              "version",
+              "artifact-version",
               "group",
               "format",
               "q",

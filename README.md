@@ -81,7 +81,7 @@ nexus-cli components list --repository releases
 nexus-cli components get COMPONENT_ID
 nexus-cli assets list --repository releases --all --max-pages 10
 nexus-cli assets get ASSET_ID
-nexus-cli search components --repository releases --name widget --version 1.0
+nexus-cli search components --repository releases --name widget --artifact-version 1.0
 nexus-cli search assets --maven-extension jar --maven-classifier ""
 ```
 
@@ -114,3 +114,21 @@ continuation token. Otherwise the command fails before HTTP with no partial resu
 
 Detail commands reject the exact identifiers `.` and `..` before HTTP because URL
 normalization treats them as navigation. Other identifiers remain encoded as one segment.
+
+
+Artifact coordinates use `--artifact-version` in Maven upload and search. Root
+`--version` reports the executable version; the former leaf spelling was consumed
+by that root option before the command handler. Wire keys remain `version` for
+search and `maven2.version` for Maven publication.
+
+Uploads use Node 22's file-backed Blob and native multipart FormData. The CLI
+requires a regular file (rejecting a final symlink) and does not buffer the whole
+file or impose the provisional 64 MiB ceiling. Payload memory is streamed by the
+runtime; file length and server limits bound the transfer. Keep the source file
+unchanged throughout the operation: Node checks for modification during reads,
+but this is not a filesystem snapshot or a hostile-filesystem guarantee. Opening
+and sending respect cancellation; cancellation or read failure after sending
+starts has unknown remote outcome. There is no automatic retry. Only HTTP 204
+acknowledges a mutation; it supplies no new component ID, atomicity or rollback
+proof. Maven may generate POM/checksum assets; repository-level edit permission
+is recommended for that workflow (see source contracts).
