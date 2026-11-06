@@ -342,7 +342,7 @@ nexus-cli repositories hosted raw update raw-releases --online false
 
 ## Source-closed acceptance additions
 
-S15/S16: retain --output and no overwrite; delivery depends on separately approved additive Core publishFile seam, not fake AppData. Include initial URL origin validation, redirect chain stripping, byte/length/hash validation and truthful cleanup outcomes from product-contract.md.
+S15/S16: retain --output and no overwrite; delivery uses the published Core 0.6.0 publishFile API. Include initial URL origin validation, redirect chain stripping, byte/length/hash validation and truthful cleanup outcomes from product-contract.md.
 
 S18: repository browse/read admission and path EDIT are separate server checks; model selector denial before write. S19: explicitly send generation=true and packaging=jar; generated POM and checksum assets do not have a separate selector check in the pinned path. Report acknowledged upload, never exact one-asset creation or atomic rollback; recommend repository-level edit for this supported workflow.
 

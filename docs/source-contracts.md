@@ -1,6 +1,6 @@
 # Source-backed contracts
 
-Nexus source: [release-3.96.3-01](https://github.com/sonatype/nexus-public/tree/release-3.96.3-01), tree `829f297c35984a5fac590a366e949cd9a9a2eb79`. Framework: [v0.5.5 pinned source](https://github.com/iXab3r/EyeAuras.CliFactory/tree/9cfedfce58132e650eba2406aedd14b12736d5ff). These conclusions establish offline contracts, not live compatibility. S24 descriptions retain deferred design only.
+Nexus source: [release-3.96.3-01](https://github.com/sonatype/nexus-public/tree/release-3.96.3-01), tree `829f297c35984a5fac590a366e949cd9a9a2eb79`. Framework: [v0.6.0 pinned source](https://github.com/iXab3r/EyeAuras.CliFactory/tree/aebe591ac51422e8feaa1b061344db99e39ad173). These conclusions establish offline contracts, not live compatibility. S24 descriptions retain deferred design only.
 
 ## Hosted GET and PUT
 
@@ -21,10 +21,9 @@ accepts relative or absolute paths; the parent must exist. Core owns private sam
 staging, exclusive no-clobber publication, identity checks and truthful published/cleanupFailed
 errors. No implicit profile files or registration. The old profile publisher was removed.
 
-Nexus source requires this reviewed API. The committed dependency remains published 0.5.5;
-durable adoption is blocked until a new exact published version containing that commit is
-available and independently reviewed. Local artifact integration evidence is not a claim that
-0.5.5 builds this candidate. No framework publication is authorized here.
+Nexus consumes this API through published Core 0.6.0, release commit
+`aebe591ac51422e8feaa1b061344db99e39ad173`. The exact registry dependency and lockfile
+replace the temporary local artifact overlay.
 
 ## Exact result rendering
 

@@ -20,7 +20,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@eyeauras/cli-factory": "0.5.5"
+    "@eyeauras/cli-factory": "0.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
