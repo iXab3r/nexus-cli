@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Readable } from "node:stream";
+import { Readable, PassThrough } from "node:stream";
 import { http, HttpResponse } from "msw";
 import { offlineCli } from "./offline.js";
 const url = "https://nexus.example.test:443/context";
@@ -426,4 +426,44 @@ test("S06 malformed body and S07 RPC absence preserve safe error channels", asyn
   ]);
   assert.equal(reply.error.data.code, "http.notFound");
   assert.equal(reply.error.data.exitCode, 1);
+});
+
+
+test("S01 oversized credential stdin fails before HTTP or persistence", async (t) => {
+  const { fixture: f, app: a, server } = await offlineCli(t);
+  let calls = 0;
+  server.events.on("request:start", () => { calls++; });
+  const before = JSON.stringify(await f.profileStore.list());
+  const result = await f.run(a, ["profile", "configure", "lab", "--url", url, "--credentials-stdin", "--json"], {
+    input: Readable.from([JSON.stringify({username: "synthetic", password: "x".repeat(65536)})]),
+  });
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /64 KiB/);
+  assert.equal(JSON.stringify(await f.profileStore.list()), before);
+    assert.equal(calls, 0);
+});
+
+test("S01 cancellation stops credential stdin before EOF without persistence", async (t) => {
+  const { fixture: f, app: a, server } = await offlineCli(t);
+  let calls = 0;
+  server.events.on("request:start", () => { calls++; });
+  const input = new PassThrough();
+  const controller = new AbortController();
+  const before = JSON.stringify(await f.profileStore.list());
+  input.once("resume", () => controller.abort());
+  const pending = f.run(a, ["profile", "configure", "lab", "--url", url, "--credentials-stdin", "--json"], {input, signal: controller.signal});
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([pending, new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("Cancellation did not settle while stdin remained open")), 500);
+    })]);
+    assert.notEqual(result.exitCode, 0);
+    assert.equal(JSON.stringify(await f.profileStore.list()), before);
+    assert.equal(calls, 0);
+    assert.equal(input.listenerCount("data"), 0);
+  } finally {
+    clearTimeout(timer);
+    input.end();
+    await pending;
+  }
 });
