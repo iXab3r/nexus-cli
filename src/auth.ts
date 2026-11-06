@@ -5,8 +5,50 @@ import {
   type AuthDefinition,
   type CommandContext,
 } from "@eyeauras/cli-factory";
-import { text } from "node:stream/consumers";
+import type { Readable } from "node:stream";
 import { request } from "./client.js";
+
+/** Read at most 64 KiB of credential JSON; cancellation must not wait for EOF. */
+async function readCredentials(input: Readable, signal: AbortSignal): Promise<string> {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let bytes = 0;
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      input.pause();
+      input.off("data", onData);
+      input.off("end", onEnd);
+      input.off("error", onError);
+      input.off("close", onClose);
+      signal.removeEventListener("abort", onAbort);
+      if (error) reject(error);
+      else resolve(Buffer.concat(chunks, bytes).toString("utf8"));
+    };
+    const onData = (chunk: Buffer | string) => {
+      const length = typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.length;
+      if (length > 65536 - bytes) {
+        finish(new CliError("Credential JSON must not exceed 64 KiB.", {code: "usage.invalid", exitCode: 2}));
+        return;
+      }
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+      bytes += length;
+    };
+    const onEnd = () => finish();
+    const onError = () => finish(new CliError("Could not read credential input.", {code: "auth.inputFailed"}));
+    const onClose = () => finish(new CliError("Credential input closed before completion.", {code: "auth.inputFailed"}));
+    const onAbort = () => finish(new DOMException("Credential input cancelled.", "AbortError"));
+    input.on("end", onEnd);
+    input.on("error", onError);
+    input.on("close", onClose);
+    signal.addEventListener("abort", onAbort, {once: true});
+    input.on("data", onData);
+    if (signal.aborted) onAbort();
+  });
+}
+
 async function probe(context: CommandContext, raw?: string) {
   try {
     const r = await request(context, "repositories", raw);
@@ -60,7 +102,7 @@ export const nexusAuth: AuthDefinition = {
         "Credential stdin is unavailable through this transport.",
         { code: "usage.invalid", exitCode: 2 },
       );
-    const raw = await text(c.io.input);
+    const raw = await readCredentials(c.io.input, c.signal);
     let pair: unknown;
     try {
       pair = JSON.parse(raw);

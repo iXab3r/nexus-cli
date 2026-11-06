@@ -70,3 +70,6 @@ runtime JavaScript, package metadata and this README.
 
 This package is private while under development. No publish, CI service,
 daemon, MCP server or live Nexus testing is configured.
+
+Credential JSON read from stdin is limited to 64 KiB (UTF-8 bytes). Cancellation
+while waiting for input stops before HTTP or credential persistence.
