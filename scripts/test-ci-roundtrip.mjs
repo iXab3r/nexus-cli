@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile, access } from 'node:fs/promises';
+import { readFile, writeFile, access, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -73,6 +73,30 @@ globalThis.fetch=async (url,init)=>{
   const after=spawnSync(executable,['profile','show','--json'],{cwd:temp,env,encoding:'utf8'});
   assert.equal(after.status,before.status);assert.equal(after.stdout,before.stdout);assert.equal(after.stderr,before.stderr);
   for(const secret of ['synthetic-ci','synthetic-pass-code',Buffer.from('synthetic-ci:synthetic-pass-code').toString('base64')])assert.ok(!logs.join('').includes(secret));
-  assert.match(await readFile(join(root,'README.md'),'utf8'),/CI artifact roundtrip/,'S28 runnable recipe must be shipped in README');
+  const readme=await readFile(join(root,'README.md'),'utf8');
+  assert.match(readme,/CI artifact roundtrip/,'S28 runnable recipe must be shipped in README');
+  const recipe=readme.split('## CI artifact roundtrip')[1].match(/```bash\n([\s\S]*?)```/)[1];
+  const recipeHome=join(temp,'recipe-home');await mkdir(recipeHome);
+  const credentials=join(temp,'synthetic-input.json');
+  await writeFile(credentials,JSON.stringify({username:'synthetic-ci',password:'synthetic-pass-code'}));
+  const recipeOutput=join(temp,'recipe-output.bin');
+  const recipeEnv={...ciEnv,HOME:recipeHome,USERPROFILE:recipeHome,APPDATA:recipeHome,XDG_CONFIG_HOME:recipeHome,
+    PATH:join(prefix,'bin')+':'+env.PATH,NEXUS_URL:'https://nexus.example.test/context',REPOSITORY:'releases',SOURCE:source,DESTINATION:recipeOutput,CREDENTIALS_JSON:credentials};
+  const recipeRun=spawnSync('bash',['-c',recipe],{cwd:temp,env:recipeEnv,encoding:'utf8',timeout:30000});
+  assert.equal(recipeRun.error,undefined);assert.equal(recipeRun.status,0,recipeRun.stderr);
+  assert.deepEqual(await readFile(recipeOutput),bytes);
+  assert.deepEqual(JSON.parse(await readFile(state,'utf8')),{});
+  assert.ok(!JSON.stringify(recipeRun).includes('synthetic-pass-code'));
+  const failedHome=join(temp,'failed-recipe-home');await mkdir(failedHome);
+  const failedOutput=join(temp,'failed-recipe.bin');
+  const beforeFailure=await readFile(trace,'utf8');
+  const failedRecipe=spawnSync('bash',['-c',recipe],{cwd:temp,encoding:'utf8',timeout:30000,
+    env:{...recipeEnv,HOME:failedHome,USERPROFILE:failedHome,APPDATA:failedHome,XDG_CONFIG_HOME:failedHome,DESTINATION:failedOutput,CI_REJECT:'1'}});
+  assert.equal(failedRecipe.error,undefined);assert.equal(failedRecipe.status,1);
+  await assert.rejects(access(failedOutput));
+  assert.ok(!(await readFile(trace,'utf8')).slice(beforeFailure.length).includes('/repository/'));
+  assert.deepEqual(JSON.parse(await readFile(state,'utf8')),{});
+
+
   console.log('S28 packaged CI profile/gate/raw upload/direct digest/failure/logout isolation passed.');
 }

@@ -202,3 +202,84 @@ policy checks; they do not diagnose the server response. Response bodies are not
 included in errors. Local Update denial provides `permissions grant Update`
 guidance before any HTTP request; enabling the local gate does not grant server
 rights. An interrupted mutation still has an unknown outcome and is not retried.
+
+## CI artifact roundtrip
+
+Reproduce the offline packaged story with Node 22:
+
+```sh
+npm ci
+npm test
+npm run test:package
+```
+
+The package harness installs into a temporary prefix, blocks socket connections in
+CLI subprocesses, substitutes only the platform secret-store methods and HTTP
+boundary, and removes its temporary files on exit. It uses a synthetic stdin pair,
+real command parsing/profiles, multipart upload and the real file publisher. npm
+dependency installation may need registry access; the CLI roundtrip is offline.
+No real keyring, Nexus server, container or global installation is needed.
+
+For a separately authorized deployment, the following Bash recipe uses an existing
+raw hosted repository and an already installed CLI. Set `NEXUS_URL`, `REPOSITORY`,
+`SOURCE` and `DESTINATION`; the destination must not exist and its parent must exist.
+Run as an isolated CI OS account with a fresh `ci` profile. The default profile is
+unchanged. Keep the source immutable during upload. Choose a unique destination
+repository path per build; this example uses `ci/artifact.bin`.
+
+```bash
+set -euo pipefail
+set +x
+: "${NEXUS_URL:?}" "${REPOSITORY:?}" "${SOURCE:?}" "${DESTINATION:?}"
+nexus-cli profile create ci --json
+# Feed a JSON {"username":"...","password":"..."} object from your CI secret
+# provider on stdin. This example reads the already protected CREDENTIALS_JSON file.
+: "${CREDENTIALS_JSON:?}"
+nexus-cli profile configure ci --url "$NEXUS_URL" --auth-mode basic \
+  --credentials-stdin --profile ci --json < "$CREDENTIALS_JSON"
+trap 'nexus-cli auth logout --profile ci --json >/dev/null' EXIT
+nexus-cli permissions grant Update --profile ci --json
+sha=$(node --input-type=module -e 'import {readFileSync} from "node:fs"; import {createHash} from "node:crypto"; console.log(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' "$SOURCE")
+nexus-cli components upload raw --repository "$REPOSITORY" --directory ci \
+  --filename artifact.bin --file "$SOURCE" --profile ci --json
+nexus-cli content download --repository "$REPOSITORY" --path ci/artifact.bin \
+  --output "$DESTINATION" --sha256 "$sha" --profile ci --json
+node --input-type=module -e 'import {readFileSync} from "node:fs"; import assert from "node:assert/strict"; assert.deepEqual(readFileSync(process.argv[1]), readFileSync(process.argv[2]))' "$SOURCE" "$DESTINATION"
+```
+
+The shell stops on nonzero exit. Upload success is an acknowledged HTTP 204, not
+an ID or transaction/rollback guarantee. An interrupted upload can have an unknown
+remote outcome: inspect before retrying. Download JSON reports `path`, `bytes`,
+`sha256` and `verified`; checksum mismatch exits nonzero without publishing a new
+file. Existing destinations are never overwritten. The recipe does no enumeration.
+If adding list/search steps, require `complete === true` before claiming completion;
+otherwise inspect `resume` and `reason`, even after an exit-zero single-page result.
+A null resume is not permission to restart blindly.
+
+Credentials require working platform secure storage. On Linux, provision a working
+Secret Service/keyring and its session access for the runner account; installing a
+binary alone does not establish headless readiness. There is no plaintext fallback.
+Windows uses DPAPI; macOS uses its keyring backend. Protect the credential input
+outside the repository and remove it according to your CI provider's lifecycle;
+do not enable shell tracing. Local `auth logout` deletes the local stored pair,
+not the server credential, and does not revoke a Nexus user token.
+
+A Nexus user-token name/pass-code pair can occupy the Basic username/password
+fields. This is a transport statement only: supported server version, licensed
+entitlement, token policy and live compatibility require separate qualification.
+The offline source baseline is Nexus 3.96.3-01, not a live support certification.
+The local Update grant permits CLI execution; it grants no Nexus server rights.
+REST upload needs server repository admission and path edit rights; see the
+[pinned upload source contract](docs/source-contracts.md#rest-upload-permissions-and-fields).
+
+Use native npm, NuGet, Maven, Docker and Python package clients for their package
+resolution, dependency, build and protocol workflows. This CLI supplies Nexus REST
+management and supported raw/Maven transfers; it does not replace those clients.
+Publish this raw recipe to a hosted repository. Proxy repositories cache upstream
+content and groups aggregate repositories for consumption; they are not this
+recipe's publication target. These distinctions follow the
+[pinned Nexus source](https://github.com/sonatype/nexus-public/tree/829f297c35984a5fac590a366e949cd9a9a2eb79)
+and [product/source baseline](docs/product-contract.md).
+Secure-store and profile behavior follows
+[CliFactory 0.6.0](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/DESIGN.md).
+The offline secret-store substitute proves no platform keyring or live entitlement.
