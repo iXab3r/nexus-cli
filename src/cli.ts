@@ -1,3 +1,4 @@
+import { downloadCommand } from "./downloads.js";
 import { hostedCommand } from "./hosted.js";
 import { formatsCommand } from './mutations.js';
 import { readFileSync } from "node:fs";
@@ -54,6 +55,7 @@ export function createDefinition(): CliDefinition {
     permissions: {},
     commands: [
       ...readCommands,
+      command("content", "Retrieve known repository content", [downloadCommand(false, true)]),
       formatsCommand,
       command(
         "status",
