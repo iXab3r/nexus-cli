@@ -31,3 +31,34 @@ for(const repository of ['bad\u001b[31mSYNTHETIC_LABEL', 'https://example.test/p
  }
  assert.doesNotMatch(JSON.stringify(await f.rpc(a,[[...argv,'--verbose']])),/SYNTHETIC_LABEL|SYNTHETIC_BODY_MARKER|x{100}/);
 });
+
+// Exercise the native transport boundary: an HTTP status mock does not cover nested causes.
+for (const operation of ['read', 'upload', 'download']) test(`S27 nested ${operation} diagnostics redact request resources`, async t => {
+ const {createCli} = await import('@eyeauras/cli-factory');
+ const {createCliFixture} = await import('@eyeauras/cli-factory/testing');
+ const {createDefinition} = await import('../src/cli.js');
+ const password = 'SYNTHETIC_CONFIGURED_PASSWORD';
+ const repository = 'https://example.test/PRIVATE_REPO_MARKER?x=QUERY_MARKER';
+ const f = await createCliFixture(t, {applicationId:'nexus-cli', profiles:[{name:'lab',values:{url:'https://nexus.example.test',authMode:'basic'},secrets:{credentials:JSON.stringify({username:'synthetic-user',password})}}]});
+ const a = f.createApplication(runtime => createCli({...createDefinition(),runtime:{...runtime,fetch:async input => {
+  const url = String(input);
+  const native = Object.assign(new Error(`socket failed ${url} ${repository} ${password}`),{code:'ECONNRESET'});
+  throw new Error('transport unavailable',{cause:native});
+ }}}));
+ const file = join(f.root,'synthetic.txt'); await writeFile(file,'synthetic');
+ await f.run(a,['permissions','grant','Update','--profile','lab']);
+ const argv = operation==='read' ? ['repositories','get',repository]
+  : operation==='upload' ? ['components','upload','raw','--repository',repository,'--file',file,'--directory','/']
+  : ['content','download','--repository',repository,'--path','artifact.txt'];
+ for (const flags of [[],['--verbose'],['--json'],['--json','--verbose']]) {
+  const r = await f.run(a,[...argv,'--profile','lab',...flags]);
+  assert.equal(r.exitCode,1); if(operation!=='download') assert.equal(r.stdout,'');
+  assert.doesNotMatch(r.stderr,/PRIVATE_REPO_MARKER|QUERY_MARKER|SYNTHETIC_CONFIGURED_PASSWORD/);
+  assert.match(r.stderr,/socket failed/);
+  if(flags.includes('--json') || flags.includes('--verbose')) assert.match(r.stderr,/ECONNRESET/);
+  if(flags.includes('--verbose')) assert.match(r.stderr,/diagnostics\.test\.js/);
+ }
+ const rpc = JSON.stringify(await f.rpc(a,[[...argv,'--profile','lab','--verbose']]));
+ assert.doesNotMatch(rpc,/PRIVATE_REPO_MARKER|QUERY_MARKER|SYNTHETIC_CONFIGURED_PASSWORD/);
+ assert.match(rpc,/ECONNRESET/); assert.match(rpc,/diagnostics\.test\.js/);
+});
