@@ -1,3 +1,4 @@
+import { ciRoundtrip } from "./test-ci-roundtrip.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, realpath, readFile, rm, writeFile } from "node:fs/promises";
@@ -74,6 +75,7 @@ try {
   assert.equal(JSON.parse(invoke([...imported,"--json"])).acknowledged,true);
   assert.match(invoke(imported),/releases/);
   console.log("Installed original POM import passed offline.");
+  await ciRoundtrip({root,temp,prefix,env,executable});
   console.log("Installed executable help/version passed with network blocked and isolated user directories.");
 } finally {
   await rm(temp, { recursive: true, force: true });
