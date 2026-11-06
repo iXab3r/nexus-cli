@@ -11,7 +11,8 @@ implementation. No Nexus version or edition compatibility is claimed.
 
 ## Development
 
-Use Node.js 22 or newer and npm 10 or newer.
+Use Node.js 22.13 or newer and npm 10 or newer for development.
+The packaged CLI supports Node.js 22 or newer.
 
 ```sh
 npm ci
