@@ -1,4 +1,4 @@
-import { readContext, statusMessage } from "./diagnostics.js";
+import { readContext, readRepository, resourceRedactions, statusMessage } from "./diagnostics.js";
 import {
   CliError,
   HttpError,
@@ -39,12 +39,11 @@ export async function request(
       : await context.secrets.require("credentials"));
   const headers: Record<string, string> = { Accept: "application/json" };
   if (raw) headers.Authorization = authorization(raw);
+  const url = String(context.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path;
   try {
     return await fetchWithRedirects(
       context.fetch,
-      String(context.profile.values.url).replace(/\/$/, "") +
-        "/service/rest/v1/" +
-        path,
+      url,
       { headers, signal: context.signal },
     );
   } catch (cause) {
@@ -52,7 +51,7 @@ export async function request(
       code: "nexus.requestFailed",
       cause: diagnosticCause(
         cause,
-        raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [],
+        [...resourceRedactions(url, readRepository(path)), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
       ),
     });
   }

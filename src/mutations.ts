@@ -1,4 +1,4 @@
-import { operationContext, readContext, statusMessage } from "./diagnostics.js";
+import { operationContext, readContext, resourceRedactions, statusMessage } from "./diagnostics.js";
 import { lstat } from "node:fs/promises";
 import { openAsBlob } from "node:fs";
 import { basename, resolve } from "node:path";
@@ -34,13 +34,12 @@ export async function mutate(
   const headers: Record<string, string> = { Accept: "application/json" };
   if (raw) headers.Authorization = authorization(raw);
   if (typeof body === "string") headers["Content-Type"] = "application/json";
+  const url = String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path;
   let response: Response;
   try {
     response = await fetchWithRedirects(
       c.fetch,
-      String(c.profile.values.url).replace(/\/$/, "") +
-        "/service/rest/v1/" +
-        path,
+      url,
       { method, headers, body, signal: c.signal },
     );
   } catch (cause) {
@@ -50,7 +49,7 @@ export async function mutate(
         code: "nexus.mutation.outcomeUnknown",
         cause: diagnosticCause(
           cause,
-          raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [],
+          [...resourceRedactions(url, diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
         ),
       },
     );

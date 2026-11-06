@@ -1,4 +1,4 @@
-import { operationContext, statusMessage } from "./diagnostics.js";
+import { operationContext, resourceRedactions, statusMessage } from "./diagnostics.js";
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { CliError, FilePublicationError, HttpError, Permission, command, diagnosticCause, fetchWithRedirects, publishFile, recordView, type CommandContext } from '@eyeauras/cli-factory';
@@ -10,8 +10,10 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
  const installation=new URL(String(c.profile.values.url));
  const eligible=(u:URL)=>u.origin===installation.origin || (installation.protocol==='http:' && u.protocol==='https:' && u.hostname===installation.hostname);
  let previous=installation;
+ const requestUrls: string[] = [];
  const transport: typeof c.fetch=async(input,init)=>{
   const u=new URL(input instanceof Request?input.url:String(input));
+  requestUrls.push(u.href);
   if(u.username || u.password || (u.protocol!=='https:' && !(u.protocol==='http:' && installation.protocol==='http:' && u.origin===installation.origin)) || (previous.protocol==='https:' && u.protocol==='http:')) throw new Error('Unsafe download target.');
   previous=u;
   return c.fetch(input,init);
@@ -66,7 +68,7 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
   void searchResponse?.body?.cancel().catch(()=>undefined);
   if(cause instanceof HttpError) throw cause;
   const httpCause=cause instanceof FilePublicationError && cause.cause instanceof HttpError ? cause.cause : undefined;
-  throw new CliError(diagnostic+': could not publish Nexus download.',{code:httpCause?.code??'nexus.downloadFailed',exitCode:1,result:{published:cause instanceof FilePublicationError && cause.published,cleanupFailed:cause instanceof FilePublicationError && cause.cleanupFailed},cause:diagnosticCause(cause,raw?[raw,JSON.parse(raw).password,authorization(raw)]:[])});
+  throw new CliError(diagnostic+': could not publish Nexus download.',{code:httpCause?.code??'nexus.downloadFailed',exitCode:1,result:{published:cause instanceof FilePublicationError && cause.published,cleanupFailed:cause instanceof FilePublicationError && cause.cleanupFailed},cause:diagnosticCause(cause,[...resourceRedactions(url,...requestUrls,typeof o.repository==='string'?o.repository:undefined),...(raw?[raw,JSON.parse(raw).password,authorization(raw)]:[])])});
  }
 }
 export function downloadCommand(search=false, content=false){return command(search||content?'download':'download <id>','Download an artifact safely',({args,options},c)=>download(c,search||content?undefined:String(args.id),options,content),{permission:Permission.ReadOnly,

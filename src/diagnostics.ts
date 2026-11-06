@@ -13,14 +13,34 @@ export function statusMessage(status: number, context: string, upload?: 'raw' | 
     : 'submitted parameters and repository policy'}.`;
   return `${context}: Nexus returned HTTP ${status}; the expected acknowledgment was not received.`;
 }
+/** Known resource spellings use Core's existing recursive diagnostic redaction. */
+export function resourceRedactions(url: string, ...resources: (string | undefined)[]): string[] {
+  const values = new Set<string>();
+  for (const value of [url, ...resources]) {
+    if (!value) continue;
+    values.add(value);
+    try {
+      // Core may already have replaced URL queries before the integration catches a cause.
+      const pathname = new URL(value).pathname;
+      if (pathname !== '/') {
+        values.add(pathname);
+        values.add(decodeURIComponent(pathname));
+      }
+    } catch { /* An opaque repository name is still redacted literally. */ }
+  }
+  return [...values];
+}
+/** Extract the known repository value without using it as a diagnostic label. */
+export function readRepository(path: string): string | undefined {
+  const [route, query] = path.split('?');
+  if (route.startsWith('repositories/') && route.split('/').length === 2) {
+    try { return decodeURIComponent(route.split('/')[1]); } catch { return undefined; }
+  }
+  return new URLSearchParams(query).get('repository') ?? undefined;
+}
 /** Paths select static read labels only; resource IDs and arbitrary query values are excluded. */
 export function readContext(path: string): string {
-  const [route, query] = path.split('?');
-  const family = route.split('/')[0];
+  const family = path.split('/')[0].split('?')[0];
   const label = ['repositories', 'components', 'assets', 'search', 'formats', 'status', 'blobstores'].includes(family) ? family : 'metadata';
-  let repository = new URLSearchParams(query).get('repository') ?? undefined;
-  if (family === 'repositories' && route.split('/').length === 2) {
-    try { repository = decodeURIComponent(route.split('/')[1]); } catch { repository = ''; }
-  }
-  return operationContext(`Read Nexus ${label}`, repository);
+  return operationContext(`Read Nexus ${label}`, readRepository(path));
 }
