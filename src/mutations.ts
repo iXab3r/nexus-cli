@@ -17,11 +17,12 @@ const usage = (message: string): never => {
   throw new CliError(message, { code: "usage", exitCode: 2 });
 };
 /** Mutate once; a failed transport cannot establish whether Nexus committed. */
-async function mutate(
+export async function mutate(
   c: CommandContext,
   path: string,
   method: string,
-  body?: FormData,
+  body?: FormData | string,
+  expectedStatus = 204,
 ) {
   const raw =
     c.profile.values.authMode === "anonymous"
@@ -29,6 +30,7 @@ async function mutate(
       : await c.secrets.require("credentials");
   const headers: Record<string, string> = { Accept: "application/json" };
   if (raw) headers.Authorization = authorization(raw);
+  if (typeof body === "string") headers["Content-Type"] = "application/json";
   let response: Response;
   try {
     response = await fetchWithRedirects(
@@ -51,7 +53,7 @@ async function mutate(
     );
   }
   await response.body?.cancel().catch(() => undefined);
-  if (response.status !== 204)
+  if (response.status !== expectedStatus)
     throw new HttpError(
       response.status,
       "Nexus mutation did not return its expected acknowledgment. Partial changes may exist.",

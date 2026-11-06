@@ -1,3 +1,4 @@
+import { hostedCommand } from "./hosted.js";
 import { formatsCommand } from './mutations.js';
 import { readFileSync } from "node:fs";
 import {
@@ -73,6 +74,7 @@ export function createDefinition(): CliDefinition {
         },
       ),
       command("repositories", "Inspect visible repositories", [
+        hostedCommand,
         command(
           "list",
           "List visible repositories",
