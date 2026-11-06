@@ -48,8 +48,11 @@ Follow the canonical sequence:
 Inventory measures coverage; stories determine implementation order. Inventory does not commit the
 product to every Nexus feature. Use `type:api-group`, `type:api`, `type:story`, `type:review` and
 `api:<group>` as prescribed during approved planning setup; milestone defects use `bug`.
-No stories, supported-version range or milestones have been approved yet. Define the inventory
-generator and sanitized fixture conventions during planning; do not refer to nonexistent tooling.
+S01–S23 and four milestones are approved in [the delivery plan](docs/milestones.md).
+S24 is deferred. The [product contract](docs/product-contract.md), [stories](docs/stories.md)
+and [source contracts](docs/source-contracts.md) define acceptance. Generate the offline census
+with `python3 docs/api/generate_inventory.py`; inventory publication is authorized.
+The 3.96.3-01 source baseline is not a live compatibility claim.
 
 ## Product rules
 
@@ -60,7 +63,7 @@ generator and sanitized fixture conventions during planning; do not refer to non
   profiles, secrets and permission gates. nexus-cli owns Nexus paths, DTOs, authentication protocol
   integration, pagination, transfers and service error semantics. Do not copy or fork framework code.
 - **Framework changes.** Propose separately, with analysis of existing consumers and owner approval
-  before creating framework issues or PRs. Do not add speculative shared infrastructure here.
+  before creating framework issues or PRs outside the approved publishFile extension. Do not add speculative shared infrastructure here.
 - **Standalone.** No IPC package, daemon or MCP server. One command tree serves every output mode.
 - **Compatibility scope.** Choose supported Nexus versions and editions explicitly in planning;
   do not infer support from a latest OpenAPI snapshot or assume all editions expose every operation.
