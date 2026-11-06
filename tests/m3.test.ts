@@ -33,3 +33,13 @@ for(const format of ['raw','maven']) test(`${format} multipart upload`,async t=>
  const prefix=format==='raw'?'raw':'maven2'; assert.equal(await (form!.get(prefix+'.asset1') as File).text(),'synthetic jar');
  if(format==='raw') {assert.equal(form!.get('raw.directory'),'/');assert.equal(form!.get('raw.asset1.filename'),'widget.jar');} else {assert.equal(form!.get('maven2.generate-pom'),'true');assert.equal(form!.get('maven2.asset1.extension'),'jar');assert.equal(form!.get('maven2.groupId'),'com.example');assert.equal(form!.get('maven2.packaging'),'jar');assert.equal(form!.get('maven2.asset1.classifier'),null);}
 });
+for (const kind of ['components', 'assets']) test(`search ${kind} artifact version reaches Nexus`, async t => {
+ let calls = 0;
+ const {fixture:f,app:a} = await offlineCli(t,http.get(base + (kind === 'components' ? 'search' : 'search/assets'), ({request}) => {
+  calls++; assert.equal(new URL(request.url).searchParams.get('version'),'1.0');
+  return HttpResponse.json({items:[],continuationToken:null});
+ }));
+ await f.run(a,['profile','configure','lab','--url','https://nexus.example.test','--auth-mode','anonymous']);
+ const r = await f.run(a,['search',kind,'--version','1.0','--profile','lab','--json']);
+ assert.equal(r.exitCode,0); assert.equal(calls,1);
+});
