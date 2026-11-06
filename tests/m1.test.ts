@@ -150,6 +150,9 @@ test("S01 rejected preserves prior state; denied remains usable; S02 RPC isolati
       "https://nexus.example.test/context/service/rest/v1/repositories",
       ({ request }) => {
         observed.push(request.headers.get("authorization") ?? "anonymous");
+        if (request.headers.get("authorization") === "Basic " + Buffer.from("synthetic-new:synthetic-rejected").toString("base64")) {
+          return new HttpResponse(null, {status: 401});
+        }
         return mode === 200
           ? HttpResponse.json([])
           : new HttpResponse(null, { status: mode });
@@ -157,8 +160,16 @@ test("S01 rejected preserves prior state; denied remains usable; S02 RPC isolati
     ),
   );
   assert.equal((await configure(f, a)).exitCode, 0);
-  mode = 401;
-  assert.equal((await configure(f, a)).exitCode, 1);
+  const originalProfiles = await f.profileStore.list();
+  const candidatePair = JSON.stringify({username: "synthetic-new", password: "synthetic-rejected"});
+  const rejected = await f.run(a, ["profile", "configure", "lab", "--url", url, "--credentials-stdin", "--json"], {
+    input: Readable.from([candidatePair]),
+  });
+  assert.equal(rejected.exitCode, 1);
+  assert.deepEqual(await f.profileStore.list(), originalProfiles);
+  observed.length = 0;
+  assert.equal((await f.run(a, ["repositories", "list", "--profile", "lab"])).exitCode, 0);
+  assert.equal(observed[0], "Basic " + Buffer.from("synthetic-reader:synthetic-password").toString("base64"));
   mode = 403;
   assert.equal((await configure(f, a)).exitCode, 0);
   const denied: any = await f.json(a, ["auth", "status", "--profile", "lab"]);
