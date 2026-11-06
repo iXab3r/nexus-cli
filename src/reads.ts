@@ -1,3 +1,4 @@
+import { deleteCommand, uploadCommand } from './mutations.js';
 import {
   CliError,
   command,
@@ -299,6 +300,8 @@ export const readCommands = [
   ...["components", "assets"].map((kind) =>
     command(kind, "Inspect repository metadata", [
       listing("list", kind),
+      deleteCommand(kind),
+      ...(kind === "components" ? [uploadCommand] : []),
       command(
         "get <id>",
         "Inspect one metadata record",

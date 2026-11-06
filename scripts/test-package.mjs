@@ -19,8 +19,8 @@ function run(file, args, options = {}) {
 try {
   const metadata = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   const [packed] = JSON.parse(run(process.execPath, [npmCli, "pack", "--json", "--ignore-scripts", "--pack-destination", temp], { cwd: root }));
-  assert.deepEqual(packed.files.map(f => f.path).sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/reads.js", "package.json"]);
-  console.log("Archive allowlist passed (7 files). Installing dependencies; this phase may use npm network access.");
+  assert.deepEqual(packed.files.map(f => f.path).sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/mutations.js", "dist/src/reads.js", "package.json"]);
+  console.log("Archive allowlist passed (8 files). Installing dependencies; this phase may use npm network access.");
   run(process.execPath, [npmCli, "install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", join(temp, packed.filename)]);
   const guard = join(temp, "offline.cjs");
   await writeFile(guard, 'const net = require("node:net"); net.Socket.prototype.connect = function () { throw new Error("Network disabled in package smoke"); }; globalThis.fetch = async (url) => { if (String(url) === "https://nexus.example.test/context/service/rest/v1/assets?repository=releases") return new Response(JSON.stringify({items: [{id:"offline-asset",path:"widget"}], continuationToken:null}), {headers:{"content-type":"application/json"}}); throw new Error("Network disabled in package smoke"); };');

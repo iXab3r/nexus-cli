@@ -1,3 +1,4 @@
+import { formatsCommand } from './mutations.js';
 import { readFileSync } from "node:fs";
 import {
   command,
@@ -52,6 +53,7 @@ export function createDefinition(): CliDefinition {
     permissions: {},
     commands: [
       ...readCommands,
+      formatsCommand,
       command(
         "status",
         "Check readable and writable availability",
