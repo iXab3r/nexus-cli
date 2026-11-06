@@ -237,7 +237,7 @@ export const formatsCommand = command(
         async ({ args }, c) => {
           const value = await document(
             c,
-            "formats/upload-specs/" + pathSegment(String(args.format)),
+            "formats/" + pathSegment(String(args.format)) + "/upload-specs",
           );
           if (
             !value ||
