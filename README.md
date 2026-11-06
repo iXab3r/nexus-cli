@@ -4,8 +4,8 @@ Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.5.5**.
 
 M1 provides profile configuration, Basic or explicit anonymous access, local
 credential status/logout, service availability, and repository list/detail.
-Later milestone commands (components, assets, search, transfers and mutations)
-are not implemented. Tests use the pinned 3.96.3-01 specification and synthetic
+M2 slice S08–S14 provides components/assets list/get and search components/assets.
+Transfers and mutations remain unimplemented; M2 is not complete. Tests use the pinned 3.96.3-01 specification and synthetic
 responses; no live Nexus version or edition compatibility is claimed.
 
 ```sh
@@ -73,3 +73,38 @@ daemon, MCP server or live Nexus testing is configured.
 
 Credential JSON read from stdin is limited to 64 KiB (UTF-8 bytes). Cancellation
 while waiting for input stops before HTTP or credential persistence.
+
+## Read and search
+
+```sh
+nexus-cli components list --repository releases
+nexus-cli components get COMPONENT_ID
+nexus-cli assets list --repository releases --all --max-pages 10
+nexus-cli assets get ASSET_ID
+nexus-cli search components --repository releases --name widget --version 1.0
+nexus-cli search assets --maven-extension jar --maven-classifier ""
+```
+
+Search accepts repository, name, version, group, format and q; asset search also
+accepts Maven extension and classifier. Empty classifier is preserved. Matching
+and ordering belong to Nexus. IDs and continuation tokens remain opaque.
+Metadata download URLs omit userinfo, query and fragment to protect credentials.
+
+Enumeration returns items, pagesFetched, complete, continuationToken, resume and
+reason. Default execution reads one page, even an empty page with a next token.
+Use --all for enumeration and --continuation-token TOKEN to resume. Defaults are
+100 pages with --all, 4 MiB decoded bytes/page, 1,000 items/page, 10,000 total items
+and 16 MiB serialized result. --max-pages, --max-page-bytes, --max-page-items,
+--max-items and --max-result-bytes accept positive reductions only.
+A failed or oversized page is rejected whole. Partial results exit 1, with
+resume identifying the first undelivered page; restart=true means start without
+a token. Repeated tokens fail with resume=null. Ordinary JSON puts partial data
+on stdout and diagnostics on stderr; RPC puts it in error.data.result.
+There is no snapshot or duplicate-free guarantee across server mutations.
+Narrow server filters when a single page exceeds a limit.
+
+S15/S16 downloads await the separately approved Core publishFile extension and
+reviewed adoption. This slice adds no alternate file destination behavior.
+The installed-package smoke additionally executes an assets read against a
+synthetic fetch response with socket networking disabled. This is offline
+packaging proof, not live Nexus compatibility evidence.

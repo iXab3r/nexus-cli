@@ -7,6 +7,7 @@ import {
   tableView,
   type CliDefinition,
 } from "@eyeauras/cli-factory";
+import { readCommands } from "./reads.js";
 import { nexusAuth } from "./auth.js";
 import { checked, repositories, type Repository } from "./client.js";
 const metadata = JSON.parse(
@@ -50,6 +51,7 @@ export function createDefinition(): CliDefinition {
     auth: nexusAuth,
     permissions: {},
     commands: [
+      ...readCommands,
       command(
         "status",
         "Check readable and writable availability",
