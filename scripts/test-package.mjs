@@ -19,11 +19,11 @@ function run(file, args, options = {}) {
 try {
   const metadata = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   const [packed] = JSON.parse(run(process.execPath, [npmCli, "pack", "--json", "--ignore-scripts", "--pack-destination", temp], { cwd: root }));
-  assert.deepEqual(packed.files.map(f => f.path).sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/mutations.js", "dist/src/reads.js", "package.json"]);
-  console.log("Archive allowlist passed (8 files). Installing dependencies; this phase may use npm network access.");
+  assert.deepEqual(packed.files.map(f => f.path).sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/hosted.js", "dist/src/mutations.js", "dist/src/reads.js", "package.json"]);
+  console.log("Archive allowlist passed (9 files). Installing dependencies; this phase may use npm network access.");
   run(process.execPath, [npmCli, "install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", join(temp, packed.filename)]);
   const guard = join(temp, "offline.cjs");
-  await writeFile(guard, 'const net = require("node:net"); net.Socket.prototype.connect = function () { throw new Error("Network disabled in package smoke"); }; globalThis.fetch = async (url, init) => { if (String(url) === "https://nexus.example.test/context/service/rest/v1/components?repository=releases" && init.method === "POST" && init.body.get("maven2.version") === "1.0" && await init.body.get("maven2.asset1").text() === "synthetic jar") return new Response(null,{status:204}); if (String(url) === "https://nexus.example.test/context/service/rest/v1/assets?repository=releases") return new Response(JSON.stringify({items: [{id:"offline-asset",path:"widget"}], continuationToken:null}), {headers:{"content-type":"application/json"}}); throw new Error("Network disabled in package smoke"); };');
+  await writeFile(guard, 'const net = require("node:net"); net.Socket.prototype.connect = function () { throw new Error("Network disabled in package smoke"); }; globalThis.fetch = async (url, init) => { if (String(url).endsWith("/repositories/raw/hosted") && init.method === "POST" && JSON.parse(init.body).storage.blobStoreName === "existing") return new Response(null,{status:201}); if (String(url).endsWith("/repositories/raw/hosted/releases")) return Response.json({name:"releases",online:true,storage:{blobStoreName:"existing",writePolicy:"ALLOW_ONCE",strictContentTypeValidation:true},cleanup:null,component:{proprietaryComponents:false},raw:{contentDisposition:"ATTACHMENT"}}); if (String(url) === "https://nexus.example.test/context/service/rest/v1/components?repository=releases" && init.method === "POST" && init.body.get("maven2.version") === "1.0" && await init.body.get("maven2.asset1").text() === "synthetic jar") return new Response(null,{status:204}); if (String(url) === "https://nexus.example.test/context/service/rest/v1/assets?repository=releases") return new Response(JSON.stringify({items: [{id:"offline-asset",path:"widget"}], continuationToken:null}), {headers:{"content-type":"application/json"}}); throw new Error("Network disabled in package smoke"); };');
   const home = join(temp, "home");
   await mkdir(home);
   const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: home, USERPROFILE: home, APPDATA: home, XDG_CONFIG_HOME: home, NODE_OPTIONS: "--require " + JSON.stringify(guard) };
@@ -41,6 +41,13 @@ try {
   const jar = join(temp, "widget.jar");
   await writeFile(jar, "synthetic jar");
   invoke(["permissions", "grant", "Update", "--profile", "public"]);
+  const hosted = ["repositories", "hosted", "raw"];
+  const get = [...hosted, "get", "releases", "--profile", "public"];
+  assert.equal(JSON.parse(invoke([...get, "--json"])).storage.writePolicy, "ALLOW_ONCE");
+  assert.match(invoke(get), /ALLOW_ONCE/);
+  const create = [...hosted, "create", "releases", "--blob-store", "existing", "--write-policy", "ALLOW_ONCE", "--online", "true", "--strict-content-type-validation", "true", "--profile", "public"];
+  assert.equal(JSON.parse(invoke([...create, "--json"])).acknowledged, true);
+  assert.match(invoke(create), /releases/);
   const upload = ["components", "upload", "maven", "--repository", "releases", "--group", "com.example", "--artifact", "widget", "--artifact-version", "1.0", "--extension", "jar", "--file", jar, "--profile", "public"];
   assert.equal(JSON.parse(invoke([...upload, "--json"])).acknowledged, true);
   assert.match(invoke(upload), /releases/);
