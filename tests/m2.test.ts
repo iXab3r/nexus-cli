@@ -318,3 +318,22 @@ for (const [name, budget, token] of [
   assert.equal(replies[0].error.data.result, undefined);
   assert.equal(calls, 0);
 });
+
+for (const kind of ["assets", "components", "repositories"]) {
+  for (const id of [".", ".."]) test(`Detail ${kind} rejects navigation ID ${id} before HTTP`, async (t) => {
+    let calls = 0;
+    const {fixture: f, app: a, server} = await offlineCli(t,
+      http.get("*", () => HttpResponse.json({id: "wrong", name: "wrong", format: "raw", type: "hosted", url: "https://nexus.example.test/repository/wrong"})),
+    );
+    await f.run(a, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+    server.events.on("request:start", () => { calls++; });
+    const argv = [kind, "get", id, "--profile", "lab"];
+    const result = await f.run(a, [...argv, "--json"]);
+    assert.equal(result.exitCode, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(JSON.parse(result.stderr).error.code, "usage");
+    const replies: any[] = await f.rpc(a, [argv]);
+    assert.equal(replies[0].error.data.exitCode, 2);
+    assert.equal(calls, 0);
+  });
+}
