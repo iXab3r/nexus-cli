@@ -134,3 +134,35 @@ starts has unknown remote outcome. There is no automatic retry. Only HTTP 204
 acknowledges a mutation; it supplies no new component ID, atomicity or rollback
 proof. Maven may generate POM/checksum assets; repository-level edit permission
 is recommended for that workflow (see source contracts).
+
+### Import an original Maven POM
+
+```sh
+nexus-cli components upload maven --repository releases --pom widget.pom --asset '{"file":"widget.jar","extension":"jar"}' --asset '{"file":"widget-sources.jar","extension":"jar","classifier":"sources"}' --profile lab
+```
+
+Supply 1–16 repeated JSON descriptors containing only `file`, `extension`, and
+optional `classifier`. The original POM is sent byte-for-byte as an unclassified
+`pom` asset with `generate-pom=false`. Nexus interprets its coordinates, including
+parent group/version inheritance, and rejects invalid or unresolved coordinates.
+The CLI does not parse XML, resolve parents, or rewrite dependencies.
+
+POM import cannot combine with `--file`, `--group`, `--artifact`,
+`--artifact-version`, `--extension`, or `--generate-pom`. The existing generated-JAR
+command remains supported. Extension/classifier pairs must be unique (empty and
+omitted classifier are equivalent); unclassified `pom` is reserved. Suffixes use
+ASCII letters, digits, hyphens, underscores, and nonempty dot-separated segments.
+Prepared `jar.asc` and `pom.asc` files are opaque companions; no signing or
+verification is performed.
+
+PowerShell example (JSON backslashes must be escaped):
+
+```powershell
+nexus-cli components upload maven --repository releases --pom 'C:\artifacts\widget.pom' --asset '{"file":"C:\\artifacts\\widget.jar","extension":"jar"}' --profile lab
+```
+
+All inputs must be accessible regular files; final symlinks are rejected before
+POST. Keep files unchanged during streaming. One multipart request requires the
+local Update grant and server permissions. Only HTTP 204 acknowledges receipt;
+there are no returned IDs or atomicity/rollback guarantees. Transport failure
+means unknown outcome; inspect Nexus before deciding whether to repeat it.
