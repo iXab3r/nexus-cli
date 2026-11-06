@@ -4,7 +4,7 @@ import { CliError, FilePublicationError, HttpError, Permission, command, diagnos
 import { authorization, pathSegment } from './client.js';
 import { document } from './mutations.js';
 /** Nexus owns transport trust and integrity; Core owns exclusive file publication. */
-async function download(c: CommandContext, id: string | undefined, o: Record<string, unknown>) {
+async function download(c: CommandContext, id: string | undefined, o: Record<string, unknown>, content=false) {
  const installation=new URL(String(c.profile.values.url));
  const eligible=(u:URL)=>u.origin===installation.origin || (installation.protocol==='http:' && u.protocol==='https:' && u.hostname===installation.hostname);
  let previous=installation;
@@ -15,7 +15,15 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
   return c.fetch(input,init);
  };
  let url:string; let name:string;
- if(id!==undefined) {
+ if(content) {
+  const path=o.path;
+  const repository=o.repository;
+  if(typeof path!=='string' || /[\\%\x00-\x1f\x7f-\x9f]/.test(path) || /^[a-z][a-z0-9+.-]*:/i.test(path) || path.split('/').some(segment=>!segment || segment==='.' || segment==='..'))
+   throw new CliError('Content path must use relative segments without navigation, controls, backslashes or percent signs.',{code:'usage',exitCode:2});
+  if(typeof repository!=='string' || !repository || /[\x00-\x1f\x7f-\x9f]/.test(repository)) throw new CliError('Repository name is required and must contain no controls.',{code:'usage',exitCode:2});
+  url=String(c.profile.values.url).replace(/\/$/,'')+'/repository/'+pathSegment(repository)+'/'+path.split('/').map(pathSegment).join('/');
+  name=path.split('/').at(-1)!;
+ } else if(id!==undefined) {
   const asset=await document(c,'assets/'+pathSegment(id));
   if(!asset || typeof asset!=='object' || Array.isArray(asset) || typeof asset.downloadUrl!=='string' || typeof asset.path!=='string') throw new CliError('Invalid asset download metadata.',{code:'nexus.decodeFailed'});
   try { new URL(asset.downloadUrl); } catch(cause) {
@@ -34,7 +42,7 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
  let length:number|undefined;
  let searchResponse:Response|undefined;
  try {
-  if(id===undefined) {
+  if(id===undefined && !content) {
    searchResponse=await fetchWithRedirects(transport,url,{headers,signal:c.signal});
    if(searchResponse.status!==200) {void searchResponse.body?.cancel(); throw new HttpError(searchResponse.status,'Nexus search download was refused.');}
    name=decodeURIComponent(previous.pathname.split('/').at(-1)??'');
@@ -59,6 +67,6 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
   throw new CliError('Could not publish Nexus download.',{code:httpCause?.code??'nexus.downloadFailed',exitCode:1,result:{published:cause instanceof FilePublicationError && cause.published,cleanupFailed:cause instanceof FilePublicationError && cause.cleanupFailed},cause:diagnosticCause(cause,raw?[raw,JSON.parse(raw).password,authorization(raw)]:[])});
  }
 }
-export function downloadCommand(search=false){return command(search?'download':'download <id>','Download an artifact safely',({args,options},c)=>download(c,search?undefined:String(args.id),options),{permission:Permission.ReadOnly,
+export function downloadCommand(search=false, content=false){return command(search||content?'download':'download <id>','Download an artifact safely',({args,options},c)=>download(c,search||content?undefined:String(args.id),options,content),{permission:Permission.ReadOnly,
  view:recordView<any>({fields:['path','bytes','sha256','verified','published','cleanupFailed'].map(k=>({label:k,value:r=>r[k]}))}),
- options:[{flags:'--output <path>',description:'Choose the destination file'}, {flags:'--sha256 <digest>',description:'Verify the expected SHA256',parse:v=>{if(!/^[a-fA-F0-9]{64}$/.test(v)) throw new CliError('Expected SHA256 must contain 64 hexadecimal characters.',{code:'usage',exitCode:2});return v;}}, {flags:'--max-bytes <number>',description:'Limit downloaded bytes',parse:v=>{if(!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v))||Number(v)<1)throw new CliError('Byte limit must be a positive integer.',{code:'usage',exitCode:2});return Number(v);}}, ...(search?['repository','name','artifact-version','group','format','q','maven-extension','maven-classifier'].map(k=>({flags:`--${k} <value>`,description:'Filter matching artifacts'})):[])]});}
+ options:[...(content?[{flags:'--repository <name>',description:'Choose the repository'},{flags:'--path <path>',description:'Choose the repository content path'}]:[]),{flags:'--output <path>',description:'Choose the destination file'}, {flags:'--sha256 <digest>',description:'Verify the expected SHA256',parse:v=>{if(!/^[a-fA-F0-9]{64}$/.test(v)) throw new CliError('Expected SHA256 must contain 64 hexadecimal characters.',{code:'usage',exitCode:2});return v;}}, {flags:'--max-bytes <number>',description:'Limit downloaded bytes',parse:v=>{if(!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v))||Number(v)<1)throw new CliError('Byte limit must be a positive integer.',{code:'usage',exitCode:2});return Number(v);}}, ...(search?['repository','name','artifact-version','group','format','q','maven-extension','maven-classifier'].map(k=>({flags:`--${k} <value>`,description:'Filter matching artifacts'})):[])]});}

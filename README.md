@@ -170,3 +170,25 @@ means unknown outcome; inspect Nexus before deciding whether to repeat it.
 In generated-JAR mode, POM generation is enabled by default. The optional
 `--generate-pom true` makes that choice explicit; `false` is unsupported.
 Original-POM mode rejects `--generate-pom` because the supplied POM is preserved.
+
+Download a known repository path without metadata or search access:
+
+```sh
+nexus-cli content download --repository raw-releases --path releases/1.0/widget.zip --output widget.zip --profile lab
+```
+
+`--path` is a decoded relative slash-separated path. Spaces and Unicode are
+encoded once per segment. Empty, dot and dot-dot segments, absolute paths/URLs,
+backslashes and controls are rejected before HTTP or file creation. Percent signs
+are conservatively rejected, including literal percent filenames, to exclude
+encoded and nested-encoded navigation. The repository name is one opaque segment.
+The configured installation context precedes `/repository/`; no discovery or
+administrative preflight is performed. Server content-read permission is required.
+
+The default destination is the safe final basename in the invocation directory;
+`--output` accepts a relative or absolute path whose parent already exists.
+Existing destinations are never overwritten. `--sha256` verifies an expected
+64-digit SHA256 before publication; without it `verified` is false. Downloads use
+the same streaming, redirect trust, cancellation, cleanup reporting and default
+1 GiB cap (`--max-bytes` overrides it) as asset/search downloads. Results report
+path, bytes, SHA256 and verified. This command does not resolve package dependencies.

@@ -29,3 +29,16 @@ for(const path of ['', '/', '../x','a/../x','a/./x','a//x','a/','https://other.e
  const replies=await f.rpc(a,[args],{cwd:dir}) as any[];assert.equal(replies[0].error.data.exitCode,2);
  assert.equal(hits,0);assert.deepEqual(await readdir(dir),[]);
 });
+for(const mode of ['upgrade','return','downgrade','userinfo'])test(`S26 redirect ${mode}`,async t=>{
+ const {Readable}=await import('node:stream');
+ const dir=await mkdtemp(join(await realpath(tmpdir()),'nexus-content-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const origin=mode==='upgrade'?'http://nexus.example.test:8081':'https://nexus.example.test';let hits=0;
+ const target=mode==='upgrade'?'https://nexus.example.test:9443/end':mode==='return'?'https://other.example.test/hop':mode==='userinfo'?'https://synthetic@other.example.test/end':'http://nexus.example.test/end';
+ const {fixture:f,app:a}=await offlineCli(t,
+ http.get(origin+'/repository/raw/file',({request})=>{assert.equal(request.headers.get('authorization'),'Basic dXNlcjpwYXNz');return new HttpResponse(null,{status:302,headers:{location:target}});}),
+ http.get('https://other.example.test/hop',({request})=>{assert.equal(request.headers.get('authorization'),null);return new HttpResponse(null,{status:302,headers:{location:origin+'/end'}});}),
+ http.get(mode==='upgrade'?target:origin+'/end',({request})=>{hits++;assert.equal(request.headers.get('authorization'),mode==='upgrade'?'Basic dXNlcjpwYXNz':null);return new HttpResponse('hello');}));
+ await f.run(a,['profile','configure','lab','--url',origin,'--credentials-stdin'],{input:Readable.from([JSON.stringify({username:'user',password:'pass'})])});
+ const r=await f.run(a,['content','download','--repository','raw','--path','file','--profile','lab'],{cwd:dir});
+ const success=['upgrade','return'].includes(mode);assert.equal(r.exitCode,success?0:1,r.stderr);assert.equal(hits,success?1:0);
+});
