@@ -231,7 +231,7 @@ export const uploadCommand = command(
                 },
               ]
             : [
-                { flags: "--generate-pom <boolean>", description: "Generate a POM for JAR upload" },
+                { flags: "--generate-pom <boolean>", description: "Generate a POM in JAR mode (true only; enabled by default)" },
                 { flags: "--pom <file>", description: "Import an original POM" },
                 { flags: "--asset <json>", description: "Add a companion asset (repeatable)", parse: collectAsset },
               ]),

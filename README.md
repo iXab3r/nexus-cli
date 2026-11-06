@@ -166,3 +166,7 @@ POST. Keep files unchanged during streaming. One multipart request requires the
 local Update grant and server permissions. Only HTTP 204 acknowledges receipt;
 there are no returned IDs or atomicity/rollback guarantees. Transport failure
 means unknown outcome; inspect Nexus before deciding whether to repeat it.
+
+In generated-JAR mode, POM generation is enabled by default. The optional
+`--generate-pom true` makes that choice explicit; `false` is unsupported.
+Original-POM mode rejects `--generate-pom` because the supplied POM is preserved.
