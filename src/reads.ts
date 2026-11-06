@@ -1,3 +1,4 @@
+import { readRepository, resourceRedactions } from "./diagnostics.js";
 import { downloadCommand } from './downloads.js';
 import { deleteCommand, uploadCommand } from './mutations.js';
 import {
@@ -78,10 +79,12 @@ async function body(
   maxBytes: number,
 ): Promise<unknown> {
   const response = await checked(c, path);
-  const bytes = await readResponseBody(response, {
-    maxBytes,
-    signal: c.signal,
-  });
+  let bytes: Uint8Array;
+  try {
+    bytes = await readResponseBody(response, { maxBytes, signal: c.signal });
+  } catch (cause) {
+    throw diagnosticCause(cause, resourceRedactions(String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, readRepository(path)));
+  }
   return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
 }
 /** Read complete pages, retaining the first undelivered checkpoint on failure. */

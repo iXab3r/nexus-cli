@@ -97,10 +97,8 @@ export async function repositories(
   context: CommandContext,
   name?: string,
 ): Promise<Repository[] | Repository> {
-  const response = await checked(
-    context,
-    "repositories" + (name === undefined ? "" : "/" + pathSegment(name)),
-  );
+  const path = "repositories" + (name === undefined ? "" : "/" + pathSegment(name));
+  const response = await checked(context, path);
   let data: unknown;
   try {
     data = JSON.parse(
@@ -114,7 +112,7 @@ export async function repositories(
   } catch (cause) {
     throw new CliError(readContext("repositories" + (name === undefined ? "" : "/" + pathSegment(name))) + ": could not decode response.", {
       code: "nexus.decodeFailed",
-      cause: diagnosticCause(cause, [], "Invalid or incomplete JSON response."),
+      cause: diagnosticCause(cause, resourceRedactions(String(context.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, name), "Invalid or incomplete JSON response."),
     });
   }
   if (name !== undefined) return repository(data);
