@@ -111,3 +111,6 @@ packaging proof, not live Nexus compatibility evidence.
 
 An enumeration result budget must fit the initial checkpoint, including any supplied
 continuation token. Otherwise the command fails before HTTP with no partial result.
+
+Detail commands reject the exact identifiers `.` and `..` before HTTP because URL
+normalization treats them as navigation. Other identifiers remain encoded as one segment.

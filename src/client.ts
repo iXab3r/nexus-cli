@@ -15,6 +15,16 @@ export function authorization(raw: string): string {
     Buffer.from(pair.username + ":" + pair.password, "utf8").toString("base64");
   return value;
 }
+/** Encode a literal path segment; dot-navigation segments cannot survive URL normalization. */
+export function pathSegment(value: string): string {
+  if (value === "." || value === "..") {
+    throw new CliError("A resource identifier cannot be '.' or '..'.", {
+      code: "usage",
+      exitCode: 2,
+    });
+  }
+  return encodeURIComponent(value);
+}
 /** Read one Nexus REST resource using Core redirect and diagnostic policy. */
 export async function request(
   context: CommandContext,
@@ -89,7 +99,7 @@ export async function repositories(
 ): Promise<Repository[] | Repository> {
   const response = await checked(
     context,
-    "repositories" + (name === undefined ? "" : "/" + encodeURIComponent(name)),
+    "repositories" + (name === undefined ? "" : "/" + pathSegment(name)),
   );
   let data: unknown;
   try {

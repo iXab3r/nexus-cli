@@ -8,7 +8,7 @@ import {
   type CommandContext,
   type OptionDefinition,
 } from "@eyeauras/cli-factory";
-import { checked } from "./client.js";
+import { checked, pathSegment } from "./client.js";
 type Item = Record<string, unknown>;
 interface PageResult {
   items: Item[];
@@ -307,7 +307,7 @@ export const readCommands = [
             return item(
               await body(
                 c,
-                kind + "/" + encodeURIComponent(String(args.id)),
+                kind + "/" + pathSegment(String(args.id)),
                 limits.maxPageBytes,
               ),
             );
