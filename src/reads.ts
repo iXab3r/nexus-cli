@@ -120,6 +120,14 @@ export async function enumerate(
     resume: { restart: token === null, token },
     reason: null,
   };
+  // Even a failed first page must fit, including the caller's opaque checkpoint.
+  // Reserve the longest reason before admitting HTTP or any complete page.
+  if (Buffer.byteLength(JSON.stringify({ ...r, reason: "repeatedToken" }), "utf8") > b.maxResultBytes) {
+    throw new CliError("Result byte limit cannot hold the initial continuation checkpoint.", {
+      code: "usage",
+      exitCode: 2,
+    });
+  }
   function fail(reason: string, cause?: unknown): never {
     r.reason = reason;
     throw new CliError("Nexus enumeration stopped.", {

@@ -108,3 +108,6 @@ reviewed adoption. This slice adds no alternate file destination behavior.
 The installed-package smoke additionally executes an assets read against a
 synthetic fetch response with socket networking disabled. This is offline
 packaging proof, not live Nexus compatibility evidence.
+
+An enumeration result budget must fit the initial checkpoint, including any supplied
+continuation token. Otherwise the command fails before HTTP with no partial result.

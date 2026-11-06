@@ -158,6 +158,10 @@ for (const [label, response, extra, code] of [
     }
     const rpc: any = await f.rpc(a, [argv]);
     assert.deepEqual(code ? rpc[0].error.data.result : rpc[0].result, d);
+    if (label === "result budget") {
+      assert.ok(Buffer.byteLength(r.stdout.trim(), "utf8") <= 300);
+      assert.ok(Buffer.byteLength(JSON.stringify(rpc[0].error.data.result), "utf8") <= 300);
+    }
     const human = await f.run(a, argv);
     assert.equal(human.exitCode, r.exitCode);
     assert.match(human.stdout, /Items/);
