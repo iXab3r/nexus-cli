@@ -12,6 +12,7 @@ import {
   fetchWithRedirects,
   type CommandContext,
 } from "@eyeauras/cli-factory";
+import { collectAsset, pomImport } from "./maven-import.js";
 import { authorization, checked, pathSegment } from "./client.js";
 const usage = (message: string): never => {
   throw new CliError(message, { code: "usage", exitCode: 2 });
@@ -52,7 +53,8 @@ export async function mutate(
       },
     );
   }
-  await response.body?.cancel().catch(() => undefined);
+  // Cancellation can await an unread cloned stream; acknowledgment needs only status.
+  void response.body?.cancel().catch(() => undefined);
   if (response.status !== expectedStatus)
     throw new HttpError(
       response.status,
@@ -131,12 +133,20 @@ export function deleteCommand(kind: string) {
 }
 export const uploadCommand = command(
   "upload",
-  "Publish one file",
+  "Publish prepared artifacts",
   ["raw", "maven"].map((format) =>
     command(
       format,
-      "Publish one file",
+      "Publish prepared artifacts",
       async ({ options: o }, c) => {
+        if (format === "maven" && o.pom !== undefined) {
+          if (typeof o.repository !== "string" || !o.repository.trim()) usage("Repository must be nonempty.");
+          const form = await pomImport(o, c);
+          await mutate(c, "components?" + new URLSearchParams({repository: String(o.repository)}), "POST", form);
+          return {repository: o.repository, acknowledged: true};
+        }
+        if (format === "maven" && o.asset !== undefined) usage("Companion assets require --pom.");
+        if (format === "maven" && o.generatePom !== undefined && o.generatePom !== "true") usage("Generated-JAR mode requires generate-pom=true.");
         const required =
           format === "raw"
             ? ["repository", "file", "directory"]
@@ -211,7 +221,7 @@ export const uploadCommand = command(
           ].map((k) => ({
             flags: `--${k === "artifactVersion" ? "artifact-version" : k} <value>`,
             description: `Set ${k}`,
-            required: true,
+            required: format === "raw" || k === "repository",
           })),
           ...(format === "raw"
             ? [
@@ -220,7 +230,11 @@ export const uploadCommand = command(
                   description: "Set the destination filename",
                 },
               ]
-            : []),
+            : [
+                { flags: "--generate-pom <boolean>", description: "Generate a POM in JAR mode (true only; enabled by default)" },
+                { flags: "--pom <file>", description: "Import an original POM" },
+                { flags: "--asset <json>", description: "Add a companion asset (repeatable)", parse: collectAsset },
+              ]),
         ],
       },
     ),
