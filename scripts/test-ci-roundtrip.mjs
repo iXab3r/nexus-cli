@@ -72,7 +72,8 @@ globalThis.fetch=async (url,init)=>{
   assert.deepEqual(JSON.parse(await readFile(state,'utf8')),{});
   const after=spawnSync(executable,['profile','show','--json'],{cwd:temp,env,encoding:'utf8'});
   assert.equal(after.status,before.status);assert.equal(after.stdout,before.stdout);assert.equal(after.stderr,before.stderr);
-  for(const secret of ['synthetic-ci','synthetic-pass-code',Buffer.from('synthetic-ci:synthetic-pass-code').toString('base64')])assert.ok(!logs.join('').includes(secret));
+  const secrets = ['synthetic-ci','synthetic-pass-code',Buffer.from('synthetic-ci:synthetic-pass-code').toString('base64')];
+  for(const secret of secrets)assert.ok(!logs.join('').includes(secret));
   const readme=await readFile(join(root,'README.md'),'utf8');
   assert.match(readme,/CI artifact roundtrip/,'S28 runnable recipe must be shipped in README');
   const recipe=readme.split('## CI artifact roundtrip')[1].match(/```bash\n([\s\S]*?)```/)[1];
@@ -86,13 +87,14 @@ globalThis.fetch=async (url,init)=>{
   assert.equal(recipeRun.error,undefined);assert.equal(recipeRun.status,0,recipeRun.stderr);
   assert.deepEqual(await readFile(recipeOutput),bytes);
   assert.deepEqual(JSON.parse(await readFile(state,'utf8')),{});
-  assert.ok(!JSON.stringify(recipeRun).includes('synthetic-pass-code'));
+  for(const secret of secrets)assert.ok(!(recipeRun.stdout+recipeRun.stderr).includes(secret));
   const failedHome=join(temp,'failed-recipe-home');await mkdir(failedHome);
   const failedOutput=join(temp,'failed-recipe.bin');
   const beforeFailure=await readFile(trace,'utf8');
   const failedRecipe=spawnSync('bash',['-c',recipe],{cwd:temp,encoding:'utf8',timeout:30000,
     env:{...recipeEnv,HOME:failedHome,USERPROFILE:failedHome,APPDATA:failedHome,XDG_CONFIG_HOME:failedHome,DESTINATION:failedOutput,CI_REJECT:'1'}});
   assert.equal(failedRecipe.error,undefined);assert.equal(failedRecipe.status,1);
+  for(const secret of secrets)assert.ok(!(failedRecipe.stdout+failedRecipe.stderr).includes(secret));
   await assert.rejects(access(failedOutput));
   assert.ok(!(await readFile(trace,'utf8')).slice(beforeFailure.length).includes('/repository/'));
   assert.deepEqual(JSON.parse(await readFile(state,'utf8')),{});
