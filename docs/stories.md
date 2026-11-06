@@ -347,3 +347,10 @@ S15/S16: retain --output and no overwrite; delivery uses the published Core 0.6.
 S18: repository browse/read admission and path EDIT are separate server checks; model selector denial before write. S19: explicitly send generation=true and packaging=jar; generated POM and checksum assets do not have a separate selector check in the pinned path. Report acknowledged upload, never exact one-asset creation or atomic rollback; recommend repository-level edit for this supported workflow.
 
 S22: show storage, cleanup, component and raw effective configuration from concrete adapter. S23 uses explicit defaults from source-contracts.md. S24 preserves supported effective settings only; legacy null can normalize to INLINE; no optimistic concurrency guarantee. Scope remains online/writePolicy change, not arbitrary configuration editing.
+
+## Expectations expansion
+
+Owner-authorized S25–S31 acceptance and proposed commands live in
+[issues #608–#614](https://github.com/iXab3r/nexus-cli/issues/608).
+See milestones.md for grouping and conditional backlog. These proposals are not shipped commands;
+independent design review precedes implementation. S24 remains deferred.
