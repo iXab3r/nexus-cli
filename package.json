@@ -2,7 +2,7 @@
   "name": "@eyeauras/nexus-cli",
   "version": "0.1.0",
   "private": true,
-  "description": "Standalone Nexus Repository CLI scaffold",
+  "description": "Standalone Nexus Repository connection and discovery CLI",
   "type": "module",
   "bin": {
     "nexus-cli": "dist/src/bin.js"
