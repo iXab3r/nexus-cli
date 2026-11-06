@@ -203,6 +203,7 @@ As a developer, I want to download a known asset with integrity check.
 nexus-cli assets download ASSET_ID --output ./widget.jar --sha256 EXPECTED
 ```
 
+- Destination defaults to invocation cwd with a safe asset basename; `--output` may be relative or absolute. No implicit profile files.
 - Observable result: destination, byte count, computed digest, verified flag.
 - Acceptance: Given matching digest, atomically finalize; mismatch/interruption/disk full exits 1 and reports actual cleanup/published state; existing destination fails; missing body never produces final file.
 - Permissions and boundaries: ReadOnly remote category; explicit local write; no resume/overwrite in initial scope.
@@ -218,6 +219,7 @@ As a developer, I want to download a uniquely selected search result.
 nexus-cli search download --repository releases --name widget --artifact-version 1.0 --output ./widget.jar
 ```
 
+- Destination defaults to invocation cwd with the safe final target basename; optional `--output` may be relative or absolute. No implicit profile files.
 - Observable result: destination and bytes; integrity unavailable unless expected checksum provided.
 - Acceptance: Given 302 follow scoped redirects; 400 ambiguity/404 absent exits 1 without file; Core same-host HTTP-to-HTTPS credential continuity (including non-default ports), unrelated-origin stripping, loop rejection and HTTPS downgrade rejection tested.
 - Permissions and boundaries: No arbitrary first hit; never forward credentials to unrelated origin.
