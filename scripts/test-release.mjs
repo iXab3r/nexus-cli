@@ -23,6 +23,7 @@ test("Cake release targets preserve archive evidence and require owner approval"
   env.NPM_TOKEN = "synthetic-stage-credential";
   env.NODE_AUTH_TOKEN = "synthetic-unwanted-credential";
   env.GITHUB_TOKEN = "synthetic-release-credential";
+  env.SSH_CONNECTION_STRING = "synthetic-unrelated-credential";
   function run(tool, args, options = {}) {
     const result = spawnSync(tool, args, { cwd: fixture, env, encoding: "utf8", timeout: 120_000, windowsHide: true, ...options });
     assert.equal(result.status, 0, `${tool} failed: ${result.stdout}\n${result.stderr}`);
@@ -49,9 +50,12 @@ test("Cake release targets preserve archive evidence and require owner approval"
 import fs from 'node:fs';
 import path from 'node:path';
 const [tool, ...invocation] = process.argv.slice(2);
-const args = tool === 'npm' ? invocation.slice(2) : invocation;
+const args = tool === 'npm' && invocation[0] === '--registry' ? invocation.slice(2) : invocation;
+assert.equal(process.env.SSH_CONNECTION_STRING, undefined);
 if (tool === 'npm') assert.deepEqual(invocation.slice(0, 2), ['--registry', 'https://registry.npmjs.org/']);
-const m = JSON.parse(fs.readFileSync(process.env.STUB_MANIFEST));
+const manifestPath = ${JSON.stringify(env.STUB_MANIFEST)};
+const m = JSON.parse(fs.readFileSync(manifestPath));
+assert.equal(process.env.SSH_CONNECTION_STRING, undefined);
 assert.equal(process.env.NODE_AUTH_TOKEN, undefined);
 assert.equal(process.env.GITHUB_TOKEN, undefined);
 const stage = tool === 'npm' && args[0] === 'stage';
@@ -59,18 +63,20 @@ assert.equal(process.env.NPM_TOKEN, stage ? 'synthetic-stage-credential' : undef
 if (tool === 'npm') {
   const config = fs.readFileSync(process.env.NPM_CONFIG_USERCONFIG, 'utf8');
   assert.equal(config, stage ? '//registry.npmjs.org/:_authToken=\${NPM_TOKEN}\\n' : '');
-  assert.ok(!process.env.NPM_CONFIG_USERCONFIG.startsWith(path.dirname(process.env.STUB_MANIFEST)));
+  assert.ok(!process.env.NPM_CONFIG_USERCONFIG.startsWith(path.dirname(manifestPath)));
 }
-fs.appendFileSync(process.env.STUB_LOG, JSON.stringify({tool, args, userconfig: process.env.NPM_CONFIG_USERCONFIG}) + '\\n');
+fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({tool, args, userconfig: process.env.NPM_CONFIG_USERCONFIG}) + '\\n');
 if (tool === 'npm' && args[0] === 'publish') { assert.ok(args.includes('--dry-run')); console.log('{}'); }
 else if (tool === 'npm' && args[0] === 'stage' && args[1] === 'list') console.log('[]');
 else if (tool === 'npm' && args[0] === 'stage' && args[1] === 'publish') console.log(JSON.stringify({[m.name]: {...m, stageId: '11111111-2222-4333-8444-555555555555'}}));
 else if (tool === 'npm' && args[0] === 'stage' && args[1] === 'download') {
-  const receipt = JSON.parse(fs.readFileSync(path.join(path.dirname(process.env.STUB_MANIFEST), 'release.json')));
+  const receipt = JSON.parse(fs.readFileSync(path.join(path.dirname(manifestPath), 'release.json')));
   assert.equal(receipt.status, 'staged-unverified');
   assert.equal(receipt.stageId, args[2]);
-  fs.copyFileSync(path.join(path.dirname(process.env.STUB_MANIFEST), m.file), 'downloaded.tgz');
+  fs.copyFileSync(path.join(path.dirname(manifestPath), m.file), 'downloaded.tgz');
 }
+else if (tool === 'npm' && ['ci','test'].includes(args[0])) {}
+else if (tool === 'npm' && args[0] === 'run' && args[1] === 'test:package') {}
 else if (tool === 'npm' && args[0] === 'view') console.log(JSON.stringify(args[1].endsWith('@0.1.0') ? {version: m.version, 'dist.integrity': m.integrity} : m.version));
 else if (tool === 'npm' && args[0] === 'run' && args[1] === 'test:registry') assert.deepEqual(args, ['run', 'test:registry', '--', m.version]);
 else if (tool === 'curl') {
@@ -89,6 +95,19 @@ else if (tool === 'curl') {
     // Restore only from the already-cached Cake packages, without network sources.
     run("dotnet", ["build", "build", "--source", join(temp, "nuget"), "--nologo"]);
     const driver = [join(fixture, "build", "bin", "Debug", "net10.0", "Build.dll")];
+    const home = join(temp, "ambient-home");
+    await mkdir(home);
+    await writeFile(join(home, ".npmrc"), "registry=https://ambient-marker.invalid/\n");
+    env.HOME = home;
+    await mkdir(join(fixture,"scripts"));
+    await writeFile(join(fixture,"scripts/test-release.mjs"), "import assert from 'node:assert/strict';assert.equal(process.env.SSH_CONNECTION_STRING,undefined);\n");
+    run("git",["add","scripts"]);
+    run("git",["-c","user.name=Synthetic Builder","-c","user.email=builder@example.invalid","commit","-m","Verification fixture"]);
+    env.RELEASE_REVISION = run("git",["rev-parse","HEAD"]);
+    manifest.commit = env.RELEASE_REVISION;
+    await writeFile(env.STUB_MANIFEST,JSON.stringify(manifest));
+    run("dotnet", [...driver,"--target","Verify","--exclusive"]);
+    await rm(log);
     // WHAT: Regression: Stage --dry-run skipped cleanliness checks but still created a stage.
     // HOW: Run that exact Cake entrypoint and require rejection before npm is invoked.
     // Retain the template's focused regression for the live staging boundary.
@@ -114,4 +133,36 @@ else if (tool === 'curl') {
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+});
+
+test("TeamCity bootstrap excludes unrelated credentials and ambient npm settings", async () => {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const temp = await mkdtemp(join(tmpdir(), "nexus-bootstrap-test-"));
+  try {
+    const bins = join(temp,"bin"); await mkdir(bins); await mkdir(join(temp,"build"));
+    // The old Linux wrapper used Bash4 case folding; all fixture names are uppercase,
+    // so this equivalent spelling also lets macOS Bash3 reproduce its environment boundary.
+    await writeFile(join(temp,"build/teamcity.sh"),(await readFile(join(root,"build/teamcity.sh"),"utf8")).replaceAll("${key^^}","$key"));
+    await writeFile(join(temp,"package.json"),JSON.stringify({version:"0.1.0",packageManager:"npm@11.21.1"}));
+    await writeFile(join(temp,".npmrc"),"");
+    const log = join(temp,"bootstrap.jsonl");
+    const stub = join(bins,"stub.mjs");
+    await writeFile(stub,`import assert from 'node:assert/strict';import fs from 'node:fs';
+const [tool,...args]=process.argv.slice(2);
+assert.equal(process.env.SSH_CONNECTION_STRING,undefined);
+assert.equal(process.env.NPM_TOKEN,undefined);assert.equal(process.env.GITHUB_TOKEN,undefined);
+assert.equal(fs.readFileSync(process.env.NPM_CONFIG_USERCONFIG,'utf8'),'');
+assert.equal(fs.readFileSync(process.env.NPM_CONFIG_GLOBALCONFIG,'utf8'),'');
+fs.appendFileSync(${JSON.stringify(log)},JSON.stringify({tool,args})+'\\n');
+if(tool==='curl')fs.writeFileSync(args[args.indexOf('-o')+1],'#!/bin/sh\\nexit 0\\n');
+`);
+    for(const tool of ["curl","npm","dotnet"]) {
+      const file = join(bins,tool);await writeFile(file,`#!/bin/sh\nexec '${process.execPath}' '${stub}' '${tool}' "$@"\n`);await chmod(file,0o755);
+    }
+    const result = spawnSync("bash",["build/teamcity.sh"],{cwd:temp,encoding:"utf8",timeout:30000,
+      env:{...process.env,PATH:bins+delimiter+process.env.PATH,RELEASE_MODE:"--verify-only",SSH_CONNECTION_STRING:"synthetic-unrelated",NPM_TOKEN:"synthetic-stage",GITHUB_TOKEN:"synthetic-release"}});
+    assert.equal(result.status,0,result.stderr);
+    const calls=(await readFile(log,"utf8")).trim().split("\n").map(JSON.parse);
+    assert.deepEqual(calls.map(x=>x.tool),["curl","npm","dotnet"]);
+  } finally {await rm(temp,{recursive:true,force:true});}
 });
