@@ -17,7 +17,7 @@ const spellings = {
   mixed: (value: string) => encodeURIComponent(value).replace(/%[0-9A-F]{2}/g, triplet =>
     triplet.replace(/[A-F]/g, (hex, index) => index === 1 ? hex.toLowerCase() : hex)),
 };
-const boundaries = ['repository', 'format', 'asset', 'search', 'upload', 'content', 'asset-download'] as const;
+const boundaries = ['repository', 'format', 'asset', 'search', 'upload', 'content', 'asset-download', 'search-download'] as const;
 
 // Real commands own resource discovery and the late known-value copy. The injected runtime
 // models native transport/body errors without mocking command, client, publisher or renderer.
@@ -39,7 +39,8 @@ for (const boundary of boundaries) for (const phase of ['transport', 'body'] as 
         : boundary === 'search' ? ['search', 'assets', '--repository', resource]
         : boundary === 'upload' ? ['components', 'upload', 'raw', '--repository', resource, '--file', file, '--directory', '/']
         : boundary === 'content' ? ['content', 'download', '--repository', resource, '--path', 'artifact.bin', '--output', output]
-        : ['assets', 'download', 'synthetic-id', '--output', output];
+        : boundary === 'asset-download' ? ['assets', 'download', 'synthetic-id', '--output', output]
+        : ['search', 'download', '--repository', resource, '--name', 'artifact.bin', '--output', output];
       let calls = 0;
       const a = f.createApplication(runtime => createCli({...createDefinition(), runtime: {...runtime, fetch: async input => {
         calls++;
@@ -47,12 +48,13 @@ for (const boundary of boundaries) for (const phase of ['transport', 'body'] as 
         if (boundary === 'asset-download' && url.endsWith('/assets/synthetic-id')) {
           return Response.json({path: 'artifact.bin', downloadUrl: 'https://nexus.example.test/content/' + encodeURIComponent(resource)});
         }
-        const native = Object.assign(new Error(`socket failed ${spell(resource)} ${spell(url)} ${spell(password)} ${controls}`), {code: 'ECONNRESET'});
-        native.name = 'NativeSocket' + controls + spell(resource);
-        native.stack = `${native.name}: ${native.message}\n    at syntheticTransport (qualification-native.js:17:3)\n    at privateResource (${spell(resource)}:2:1)`;
-        const related = Object.assign(new Error('related failure ' + spell(resource)), {code: 73});
+        const knownResource = boundary === 'asset-download' ? decodeURIComponent(new URL(url).pathname) : resource;
+        const native = Object.assign(new Error(`socket failed ${spell(knownResource)} ${spell(url)} ${spell(password)} ${controls}`), {code: 'ECONNRESET'});
+        native.name = 'NativeSocket' + controls + spell(knownResource);
+        native.stack = `${native.name}: ${native.message}\n    at syntheticTransport (qualification-native.js:17:3)\n    at privateResource (${spell(knownResource)}:2:1)`;
+        const related = Object.assign(new Error('related failure ' + spell(knownResource)), {code: 73});
         related.name = 'Related' + controls;
-        const coded = Object.assign(new Error('coded failure ' + spell(resource)), {code: 'E_SYNTHETIC' + controls + spell(resource)});
+        const coded = Object.assign(new Error('coded failure ' + spell(knownResource)), {code: 'E_SYNTHETIC' + controls + spell(knownResource)});
         const cause = new TypeError('native operation failed', {cause: native});
         const failure = new AggregateError([related, coded], 'related operations failed', {cause});
         // Core readers/transports also copy before Nexus has resource values. Make that
@@ -62,7 +64,7 @@ for (const boundary of boundaries) for (const phase of ['transport', 'body'] as 
         return new Response(new ReadableStream({start(controller) {controller.error(earlyCopy);}}));
       }}}));
       await f.run(a, ['permissions', 'grant', 'Update', '--profile', 'lab']);
-      const download = boundary === 'content' || boundary === 'asset-download';
+      const download = boundary === 'content' || boundary === 'asset-download' || boundary === 'search-download';
       function safe(text: string) {
         assert.doesNotMatch(text, /SYNTHETIC_PRIVATE|SYNTHETIC_PAIR/, 'known resource or credential survived');
         assert.doesNotMatch(text, unsafeControls, 'terminal control survived');
