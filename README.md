@@ -55,7 +55,7 @@ that status alone does not establish a credential or permission diagnosis.
 
 ## Development
 
-Use Node.js 22.13 or newer and npm 10 or newer for development.
+Use Node.js 22.13 or newer, the npm version pinned in `packageManager`, and .NET 10 for the build driver.
 The packaged CLI supports Node.js 22 or newer.
 
 ```sh
@@ -78,8 +78,11 @@ Its dependency-install phase may access npm; command execution is offline.
 Temporary installation files are removed afterward. The archive includes only
 runtime JavaScript, package metadata and this README.
 
-This package is private while under development. No publish, CI service,
-daemon, MCP server or live Nexus testing is configured.
+The first release candidate is `@eyeauras/nexus-cli@0.1.0`. [Build and release](docs/release.md)
+describes the TeamCity main-only Verify job, manual npm staging, owner 2FA approval,
+and registry verification. CI configuration and publication are delivery-lead actions;
+package metadata alone is not a publication claim. Core adoption must pass the
+clean registry gate described there before release.
 
 Credential JSON read from stdin is limited to 64 KiB (UTF-8 bytes). Cancellation
 while waiting for input stops before HTTP or credential persistence.

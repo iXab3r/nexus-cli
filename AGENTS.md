@@ -72,7 +72,8 @@ The 3.96.3-01 source baseline is not a live compatibility claim.
   follows the framework's bounded local packaged-CLI practice. Sanitize fixtures before committing.
 - **Build/release direction.** Follow the CliFactory/opensearch-cli TeamCity main-only approach,
   Cake Frosting and `build/teamcity.sh`. No GitHub Actions or PowerShell infrastructure. These are
-  future setup conventions, not a claim that CI or release infrastructure already exists.
+  implemented locally; [release setup](docs/release.md) records the root-owned TeamCity cutover
+  and staged publication. Source preparation does not claim deployed CI or a published package.
 - **Privacy.** Before every commit inspect the full tracked tree and staged diff for secrets,
   private endpoints, personal data and unsanitized responses. Resolve findings before commit/push.
 

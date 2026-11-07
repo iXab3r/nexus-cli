@@ -3,26 +3,54 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const temp = await mkdtemp(join(await realpath(tmpdir()), "nexus-package-"));
-const prefix = join(temp, "prefix");
 const npmCli = process.env.npm_execpath;
 assert.ok(npmCli, "Run with npm run test:package.");
+const tarball = process.argv[2] === "--tarball" ? process.argv[3] : undefined;
+const version = tarball === undefined ? process.argv[2] : undefined;
+assert.ok(process.argv.length <= (tarball ? 4 : 3), "Pass --tarball <absolute-path> or one registry version.");
+assert.ok(process.argv[2] !== "--tarball" || (tarball && isAbsolute(tarball)), "Pass an absolute tarball path.");
+assert.ok(version === undefined || /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version), "Pass a registry version.");
+const temp = await mkdtemp(join(await realpath(tmpdir()), "nexus-package-"));
+const prefix = join(temp, "prefix");
+const installEnv = { ...process.env };
+for (const key of Object.keys(installEnv)) if (/token|^npm_config_|^node_options$|^node_path$/i.test(key)) delete installEnv[key];
 function run(file, args, options = {}) {
-  const result = spawnSync(file, args, { cwd: temp, encoding: "utf8", timeout: 180000, ...options });
+  const result = spawnSync(file, args, { cwd: temp, env: installEnv, encoding: "utf8", timeout: 180000, ...options });
   assert.equal(result.error, undefined);
-  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.status, 0, `Package check failed (status ${result.status}).`);
   return result.stdout;
 }
+function npm(args, options) {
+  return run(process.execPath, [npmCli, ...args, "--cache", join(temp, "cache"), "--userconfig", join(temp, "npmrc"),
+    "--globalconfig", join(temp, "global-npmrc"), "--registry", "https://registry.npmjs.org/"], options);
+}
 try {
+  await writeFile(join(temp, "npmrc"), "");
+  await writeFile(join(temp, "global-npmrc"), "");
   const metadata = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  const [packed] = JSON.parse(run(process.execPath, [npmCli, "pack", "--json", "--ignore-scripts", "--pack-destination", temp], { cwd: root }));
-  assert.deepEqual(packed.files.map(f => f.path).sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"]);
+  assert.ok(version === undefined || version === metadata.version, "Registry version must match this source revision.");
+  let source = tarball;
+  if (source === undefined) {
+    const [packed] = JSON.parse(npm(["pack", ...(version ? [`${metadata.name}@${version}`] : []), "--json", "--ignore-scripts", "--pack-destination", temp], { cwd: root }));
+    assert.equal(packed.name, metadata.name);
+    assert.equal(packed.version, metadata.version);
+    source = join(temp, packed.filename);
+  }
+  const members = run("tar", ["-tzf", source]).trim().split("\n");
+  assert.deepEqual(members.sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"].map(path => "package/" + path).sort());
   console.log("Archive allowlist passed (14 files). Installing dependencies; this phase may use npm network access.");
-  run(process.execPath, [npmCli, "install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", join(temp, packed.filename)]);
+  npm(["install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", source]);
+  const installed = join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@eyeauras", "nexus-cli");
+  const installedMetadata = JSON.parse(await readFile(join(installed, "package.json"), "utf8"));
+  assert.equal(installedMetadata.name, metadata.name);
+  assert.equal(installedMetadata.version, metadata.version);
+  assert.deepEqual(installedMetadata.dependencies, metadata.dependencies);
+  const resolved = JSON.parse(run(process.execPath, ["--input-type=module", "--eval", 'console.log(JSON.stringify(import.meta.resolve("@eyeauras/cli-factory")))'], {cwd:installed}));
+  assert.ok(!relative(prefix, await realpath(fileURLToPath(resolved))).startsWith(".."), "Core must resolve inside the isolated installation.");
   const guard = join(temp, "offline.cjs");
   await writeFile(guard, 'const net = require("node:net"); net.Socket.prototype.connect = function () { throw new Error("Network disabled in package smoke"); }; globalThis.fetch = async (url, init) => { if (String(url).endsWith("/components?repository=releases") && init.body.get("maven2.generate-pom") === "false" && init.body.get("maven2.asset1.extension") === "pom" && await init.body.get("maven2.asset1").text() === "<project>original dependencies</project>" && await init.body.get("maven2.asset2").text() === "synthetic jar" && init.body.get("maven2.groupId") === null) return new Response(null,{status:204}); if(String(url).endsWith("/context/repository/releases/direct.bin")) return new Response("offline download"); if(String(url).includes("/search/assets/download?")) { const q = new URL(url).searchParams; if(q.get("name") === "ambiguous") { require("node:assert/strict").equal(q.has("sort"),false); return new Response("synthetic ambiguity",{status:400}); } if(q.has("sort")) { require("node:assert/strict").deepEqual(Object.fromEntries(q),{repository:"snapshots",name:"widget",version:"1.2-20261107.123456-4","maven.baseVersion":"1.2-SNAPSHOT","maven.extension":"jar","maven.classifier":"",sort:"version",direction:"desc",prerelease:"false"}); return new Response(null,{status:302,headers:{location:"https://nexus.example.test/content/widget-selected.jar"}}); } return new Response(null,{status:302,headers:{location:"https://nexus.example.test/content/download.jar"}}); } if(String(url).endsWith("/content/widget-selected.jar")) return new Response("offline selected snapshot"); if(String(url).endsWith("/assets/known")) return Response.json({path:"download.jar",downloadUrl:"https://nexus.example.test/content/download.jar"}); if(String(url).endsWith("/content/download.jar")) return new Response("offline download"); if (String(url).endsWith("/repositories/raw/hosted") && init.method === "POST" && JSON.parse(init.body).storage.blobStoreName === "existing") return new Response(null,{status:201}); if (String(url).endsWith("/repositories/raw/hosted/releases")) return Response.json({name:"releases",online:true,storage:{blobStoreName:"existing",writePolicy:"ALLOW_ONCE",strictContentTypeValidation:true},cleanup:null,component:{proprietaryComponents:false},raw:{contentDisposition:"ATTACHMENT"}}); if (String(url) === "https://nexus.example.test/context/service/rest/v1/components?repository=releases" && init.method === "POST" && init.body.get("maven2.version") === "1.0" && await init.body.get("maven2.asset1").text() === "synthetic jar") return new Response(null,{status:204}); if (String(url) === "https://nexus.example.test/context/service/rest/v1/assets?repository=releases") return new Response(JSON.stringify({items: [{id:"offline-asset",path:"widget"}], continuationToken:null}), {headers:{"content-type":"application/json"}}); throw new Error("Network disabled in package smoke"); };');
 

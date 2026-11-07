@@ -6,6 +6,7 @@
     "strict": true,
     "outDir": "dist",
     "rootDir": ".",
+    "newLine": "lf",
     "skipLibCheck": true
   },
   "include": [

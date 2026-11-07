@@ -1,6 +1,6 @@
 # Nexus CLI product contract
 
-[Owner approval](https://github.com/iXab3r/nexus-cli/issues/1#issuecomment-6690348756) authorizes S01–S23 across four milestones. S24 is deferred. npm publication, TeamCity changes and live Nexus access remain excluded.
+[Owner approval](https://github.com/iXab3r/nexus-cli/issues/1#issuecomment-6690348756) authorizes S01–S23 across four milestones. S24 is deferred. The subsequent release task authorizes TeamCity configuration and the first staged npm release, with review, configuration application, merge and publication retained by the delivery lead. See [release setup](release.md). Live Nexus access remains separately scoped.
 
 ## Reproducible specification provenance
 
