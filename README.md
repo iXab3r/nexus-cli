@@ -84,11 +84,35 @@ nexus-cli assets list --repository releases --all --max-pages 10
 nexus-cli assets get ASSET_ID
 nexus-cli search components --repository releases --name widget --artifact-version 1.0
 nexus-cli search assets --maven-extension jar --maven-classifier ""
+nexus-cli search assets --repository snapshots --maven-base-version 1.2-SNAPSHOT --sort version --direction desc --prerelease true
+nexus-cli search download --repository snapshots --name widget --maven-base-version 1.2-SNAPSHOT --maven-extension jar --maven-classifier '' --sort version --direction desc --prerelease false --profile lab
 ```
 
-Search accepts repository, name, version, group, format and q; asset search also
-accepts Maven extension and classifier. Empty classifier is preserved. Matching
-and ordering belong to Nexus. IDs and continuation tokens remain opaque.
+All three search commands (`components`, `assets`, `download`) accept
+`--repository`, `--name`, `--artifact-version`, `--group`, `--format`, `--q`,
+`--maven-base-version`, `--sort`, `--direction`, and `--prerelease`.
+Asset search and search download also accept `--maven-extension` and
+`--maven-classifier`. An omitted classifier sends no filter; `--maven-classifier ''`
+sends an empty filter. Maven base version maps to `maven.baseVersion`; it is a
+string, such as `1.2-SNAPSHOT`, distinct from an explicit `--artifact-version`.
+
+`--sort` accepts `group`, `name`, `version`, or `repository`; `--direction` accepts
+`asc` or `desc` and requires `--sort` as a CLI policy. No direction is added when
+omitted. `--prerelease` requires lowercase `true` or `false`, transmitted as a
+lowercase string matching the pinned schema. These filters persist across pages
+and must be supplied again when resuming with a continuation token.
+
+Without sorting, search download retains Nexus's unique-match behavior: ambiguous
+matches fail without creating a file. An explicit sort requests deliberate server
+selection. Matching and ordering belong to Nexus; the CLI performs no local version
+ranking or extra metadata lookup. An explicit artifact version is sent unchanged.
+Downloads report the saved path, bytes, SHA256, and verification status, using the
+final response target's basename by default. They do not infer a selected version
+from a filename or the requested filters. Search listings show versions only when
+returned by Nexus. Selection options require the pinned endpoint schema; this
+offline evidence does not establish live version or edition support.
+
+IDs and continuation tokens remain opaque.
 Metadata download URLs omit userinfo, query and fragment to protect credentials.
 
 Enumeration returns items, pagesFetched, complete, continuationToken, resume and

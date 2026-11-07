@@ -1,5 +1,6 @@
 import { readResource, resourceRedactions } from "./diagnostics.js";
 import { downloadCommand } from './downloads.js';
+import { searchOptions, searchQuery } from './search.js';
 import { deleteCommand, uploadCommand } from './mutations.js';
 import {
   CliError,
@@ -101,18 +102,7 @@ export async function enumerate(
         .map((k) => [k, o[k]]),
     ),
   } as typeof limits;
-  const query = new URLSearchParams();
-  for (const [key, wire] of Object.entries({
-    repository: "repository",
-    name: "name",
-    artifactVersion: "version",
-    group: "group",
-    format: "format",
-    q: "q",
-    mavenExtension: "maven.extension",
-    mavenClassifier: "maven.classifier",
-  }))
-    if (o[key] !== undefined) query.set(wire, String(o[key]));
+  const query = searchQuery(o);
   let token =
     o.continuationToken === undefined ? null : String(o.continuationToken);
   const seen = new Set<string>();
@@ -270,32 +260,18 @@ function listing(name: string, path: string, search = false) {
       permission: Permission.ReadOnly,
       view: pageView,
       options: [
-        {
+        ...(!search ? [{
           flags: "--repository <name>",
           description: "Select a repository",
-          required: !search,
-        },
+          required: true,
+        }] : []),
         {
           flags: "--continuation-token <token>",
           description: "Resume from a continuation token",
         },
         { flags: "--all", description: "Read all pages within limits" },
         ...budgetOptions,
-        ...(search
-          ? [
-              "name",
-              "artifact-version",
-              "group",
-              "format",
-              "q",
-              ...(path.endsWith("/assets")
-                ? ["maven-extension", "maven-classifier"]
-                : []),
-            ].map((k) => ({
-              flags: `--${k} <value>`,
-              description: "Filter matching metadata",
-            }))
-          : []),
+        ...(search ? searchOptions(path.endsWith("/assets")) : []),
       ],
     },
   );

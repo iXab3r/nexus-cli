@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs';
 import { CliError, FilePublicationError, HttpError, Permission, command, diagnosticCause, fetchWithRedirects, publishFile, recordView, type CommandContext } from '@eyeauras/cli-factory';
 import { authorization, pathSegment } from './client.js';
 import { document } from './mutations.js';
+import { searchOptions, searchQuery } from './search.js';
 /** Nexus owns transport trust and integrity; Core owns exclusive file publication. */
 async function download(c: CommandContext, id: string | undefined, o: Record<string, unknown>, content=false) {
  const diagnostic=operationContext('Download Nexus artifact', typeof o.repository==='string'?o.repository:undefined);
@@ -35,8 +36,7 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
   }
   url=asset.downloadUrl; name=asset.path.split('/').at(-1)!;
  } else {
-  const q=new URLSearchParams();
-  for(const [k,v] of Object.entries({repository:'repository',name:'name',artifactVersion:'version',group:'group',format:'format',q:'q',mavenExtension:'maven.extension',mavenClassifier:'maven.classifier'})) if(o[k]!==undefined) q.set(v,String(o[k]));
+  const q=searchQuery(o);
   url=String(c.profile.values.url).replace(/\/$/,'')+'/service/rest/v1/search/assets/download?'+q;
   name=typeof o.name==='string'?o.name:'download';
  }
@@ -73,4 +73,4 @@ async function download(c: CommandContext, id: string | undefined, o: Record<str
 }
 export function downloadCommand(search=false, content=false){return command(search||content?'download':'download <id>','Download an artifact safely',({args,options},c)=>download(c,search||content?undefined:String(args.id),options,content),{permission:Permission.ReadOnly,
  view:recordView<any>({fields:['path','bytes','sha256','verified','published','cleanupFailed'].map(k=>({label:k,value:r=>r[k]}))}),
- options:[...(content?[{flags:'--repository <name>',description:'Choose the repository'},{flags:'--path <path>',description:'Choose the repository content path'}]:[]),{flags:'--output <path>',description:'Choose the destination file'}, {flags:'--sha256 <digest>',description:'Verify the expected SHA256',parse:v=>{if(!/^[a-fA-F0-9]{64}$/.test(v)) throw new CliError('Expected SHA256 must contain 64 hexadecimal characters.',{code:'usage',exitCode:2});return v;}}, {flags:'--max-bytes <number>',description:'Limit downloaded bytes',parse:v=>{if(!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v))||Number(v)<1)throw new CliError('Byte limit must be a positive integer.',{code:'usage',exitCode:2});return Number(v);}}, ...(search?['repository','name','artifact-version','group','format','q','maven-extension','maven-classifier'].map(k=>({flags:`--${k} <value>`,description:'Filter matching artifacts'})):[])]});}
+ options:[...(content?[{flags:'--repository <name>',description:'Choose the repository'},{flags:'--path <path>',description:'Choose the repository content path'}]:[]),{flags:'--output <path>',description:'Choose the destination file'}, {flags:'--sha256 <digest>',description:'Verify the expected SHA256',parse:v=>{if(!/^[a-fA-F0-9]{64}$/.test(v)) throw new CliError('Expected SHA256 must contain 64 hexadecimal characters.',{code:'usage',exitCode:2});return v;}}, {flags:'--max-bytes <number>',description:'Limit downloaded bytes',parse:v=>{if(!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v))||Number(v)<1)throw new CliError('Byte limit must be a positive integer.',{code:'usage',exitCode:2});return Number(v);}}, ...(search?searchOptions(true):[])]});}
