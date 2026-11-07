@@ -257,3 +257,16 @@ for (const route of routes) for (const phase of ["transport", "body"]) test(`S30
   }
   assert.equal(calls, 6);
 });
+
+
+test("S30 sparse long field scopes do not amplify human output", async t => {
+  const longField = {name:"n".repeat(256),type:"t".repeat(256),optional:false};
+  const specs = Array.from({length:1000},(_,i)=>({format:`format-${i}`,multipleUpload:false,
+    componentFields:i===999?Array(64).fill(longField):[],assetFields:i===999?Array(64).fill(longField):[]}));
+  const cli = await setup(t,()=>HttpResponse.json(specs));
+  const human = await invoke(cli,routes[1].argv,"human");
+  assert.equal(human.exitCode,0,human.stderr);
+  assert.ok(Buffer.byteLength(human.stdout)<1024*1024,"sparse scopes must not pad unrelated specifications");
+  assert.match(human.stdout,/format-999/);assert.match(human.stdout,new RegExp(longField.name+": required"));
+  for(const mode of ["json","rpc"] as const) assert.deepEqual((await invoke(cli,routes[1].argv,mode)).data,specs);
+});
