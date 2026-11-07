@@ -6,16 +6,16 @@ belong in `docs/`; scope, acceptance and delivery state belong in GitHub Issues.
 
 ## Framework baseline
 
-Adopt CliFactory **v0.6.0**, commit `aebe591ac51422e8feaa1b061344db99e39ad173`, as the
+Adopt CliFactory **v0.6.1**, commit `c313194f8cd22547dae6ae8693a2771f3a5066f0`, as the
 runtime and instruction baseline. The published dependency is pinned exactly; keep these
 instruction links aligned with it.
 Read the relevant pinned contracts before changing their surfaces:
 
-- [Universal laws](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/AGENTS.md)
-- [Runtime and public API](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/DESIGN.md)
-- [Integration authoring](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/integrations.md)
-- [Offline tests and sanitization](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/testing.md)
-- [CLI writer](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/roles/cli-writer.md) for every terminal-facing text
+- [Universal laws](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/AGENTS.md)
+- [Runtime and public API](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/DESIGN.md)
+- [Integration authoring](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/integrations.md)
+- [Offline tests and sanitization](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/testing.md)
+- [CLI writer](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/roles/cli-writer.md) for every terminal-facing text
 
 These framework laws apply here. Links are required reading, not copied local implementations.
 Framework repository paths describe its ownership; this repository owns only the Nexus product.
@@ -23,8 +23,8 @@ Framework repository paths describe its ownership; this repository owns only the
 ## Story Delivery Lead — primary delivery role
 
 For planning or delivering this product, adopt **Story Delivery Lead**. Read its canonical
-[role](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/roles/story-delivery-lead.md) and
-[story-driven delivery practice](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/practices/story-driven-delivery.md).
+[role](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/roles/story-delivery-lead.md) and
+[story-driven delivery practice](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/practices/story-driven-delivery.md).
 The role owns the delivery process, not production code. Compose it with the integration author,
 GH issue dev, CLI writer and Reviewer as the work requires.
 
@@ -79,12 +79,12 @@ The 3.96.3-01 source baseline is not a live compatibility claim.
 
 ## Supporting roles and delivery rules
 
-- [GH issue dev](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/roles/gh-issue-dev.md) and
-  [issue lifecycle](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/practices/github-issues.md) govern issue/PR work.
-- [Reviewer](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/roles/reviewer.md) and
-  [independent review](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/practices/independent-review.md) govern completed-diff reviews.
-- [Reconciliation Lead](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/roles/reconciliation-lead.md) and
-  [workstreams](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/practices/workstreams.md) govern bounded inventory audits.
+- [GH issue dev](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/roles/gh-issue-dev.md) and
+  [issue lifecycle](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/practices/github-issues.md) govern issue/PR work.
+- [Reviewer](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/roles/reviewer.md) and
+  [independent review](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/practices/independent-review.md) govern completed-diff reviews.
+- [Reconciliation Lead](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/roles/reconciliation-lead.md) and
+  [workstreams](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/practices/workstreams.md) govern bounded inventory audits.
 - GitHub Issues is the tracker. Partial PRs reference issues without closing keywords.
 - New branches default to `bugfix/`, unless explicitly named by the owner. Never force-push or
   rewrite pushed history.

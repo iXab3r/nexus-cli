@@ -1,6 +1,6 @@
 # nexus-cli
 
-Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.6.0**.
+Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.6.1**.
 
 M1 provides profile configuration, Basic or explicit anonymous access, local
 credential status/logout, service availability, and repository list/detail.
@@ -140,7 +140,7 @@ on stdout and diagnostics on stderr; RPC puts it in error.data.result.
 There is no snapshot or duplicate-free guarantee across server mutations.
 Narrow server filters when a single page exceeds a limit.
 
-Downloads use Core 0.6.0 publishFile with invocation-cwd defaults and optional
+Downloads use Core 0.6.1 publishFile with invocation-cwd defaults and optional
 `--output`. The parent directory must exist; existing destinations are never overwritten.
 Byte limits and optional SHA256 validation apply before publication. Cleanup failures
 report the actual publication state and exit 1.
@@ -354,5 +354,5 @@ recipe's publication target. These distinctions follow the
 [pinned Nexus source](https://github.com/sonatype/nexus-public/tree/829f297c35984a5fac590a366e949cd9a9a2eb79)
 and [product/source baseline](docs/product-contract.md).
 Secure-store and profile behavior follows
-[CliFactory 0.6.0](https://github.com/iXab3r/EyeAuras.CliFactory/blob/aebe591ac51422e8feaa1b061344db99e39ad173/docs/DESIGN.md).
+[CliFactory 0.6.1](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/DESIGN.md).
 The offline secret-store substitute proves no platform keyring or live entitlement.

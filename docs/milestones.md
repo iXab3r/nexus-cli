@@ -14,7 +14,7 @@ The 442 operations and 120 groups are a coverage census, not an implementation p
 
 Every milestone requires committed red acceptance evidence before implementation, green offline real-command-tree tests, package install smoke and fresh independent review at the final head. Parent owns PRs, acceptance and closure. Stories and operations stay open until their behavior is accepted at that head; dependency links do not prove implementation.
 
-CliFactory is pinned exactly to 0.6.0. It includes the approved arbitrary-output publishFile extension; no framework edits belong here. No live compatibility, npm publication or TeamCity configuration is authorized by this plan.
+CliFactory is pinned exactly to 0.6.1. It includes the approved arbitrary-output publishFile extension; no framework edits belong here. No live compatibility, npm publication or TeamCity configuration is authorized by this plan.
 
 ## Delivery tracking
 

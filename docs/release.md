@@ -15,12 +15,15 @@ The first package candidate is `@eyeauras/nexus-cli@0.1.0`; its executable reads
 version from package.json. The public npm registry returned 404 for this name on
 2026-11-07. This does not reserve the name or prove publishing rights.
 
-The manifests still pin registry Core **0.6.0**. The completed M5/M6 runtime evidence
-uses a separately qualified, unpublished Core artifact. A clean install of 0.6.0
-is known to fail the current acceptance suite. Do not stage this candidate yet.
-The delivery lead must first adopt the actually published Core patch, update the
-exact manifest/lock pin and matching pinned instruction links/contracts, then run
-clean Verify and DryRun. A local overlay is never evidence of published adoption.
+The manifest and lock now pin published Core **0.6.1**, with instruction links at
+release commit `c313194f8cd22547dae6ae8693a2771f3a5066f0`. Its freshly downloaded
+registry archive matches the official GitHub release archive and manifest: SHA-1
+`d0d5413f329f8d259b000117f1270aaa5f641fbf`, with matching SHA-512 lock integrity.
+The earlier M5/M6 local-overlay receipts remain historical evidence only.
+
+Clean-registry qualification is still pending at this candidate: run full Verify,
+Pack and DryRun at the clean committed head before staging. A local overlay never
+qualifies published adoption. Each release revision requires these gates again.
 
 ## Local driver
 
