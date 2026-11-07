@@ -1,4 +1,4 @@
-import { readRepository, resourceRedactions } from "./diagnostics.js";
+import { readResource, resourceRedactions } from "./diagnostics.js";
 import { downloadCommand } from './downloads.js';
 import { deleteCommand, uploadCommand } from './mutations.js';
 import {
@@ -83,7 +83,7 @@ async function body(
   try {
     bytes = await readResponseBody(response, { maxBytes, signal: c.signal });
   } catch (cause) {
-    throw diagnosticCause(cause, resourceRedactions(String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, readRepository(path)));
+    throw diagnosticCause(cause, resourceRedactions(String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, readResource(path)));
   }
   return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
 }

@@ -1,4 +1,4 @@
-import { operationContext, readContext, readRepository, resourceRedactions, statusMessage } from "./diagnostics.js";
+import { operationContext, readContext, readResource, resourceRedactions, statusMessage } from "./diagnostics.js";
 import { lstat } from "node:fs/promises";
 import { openAsBlob } from "node:fs";
 import { basename, resolve } from "node:path";
@@ -79,7 +79,7 @@ export async function document(c: CommandContext, path: string): Promise<any> {
       code: "nexus.decodeFailed",
       cause: diagnosticCause(
         cause,
-        resourceRedactions(String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, readRepository(path)),
+        resourceRedactions(String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, readResource(path)),
         "Invalid or incomplete Nexus response.",
       ),
     });

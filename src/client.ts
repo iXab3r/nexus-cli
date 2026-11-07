@@ -1,4 +1,4 @@
-import { readContext, readRepository, resourceRedactions, statusMessage } from "./diagnostics.js";
+import { readContext, readResource, resourceRedactions, statusMessage } from "./diagnostics.js";
 import {
   CliError,
   HttpError,
@@ -51,7 +51,7 @@ export async function request(
       code: "nexus.requestFailed",
       cause: diagnosticCause(
         cause,
-        [...resourceRedactions(url, readRepository(path)), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
+        [...resourceRedactions(url, readResource(path)), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
       ),
     });
   }
