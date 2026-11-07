@@ -81,8 +81,9 @@ runtime JavaScript, package metadata and this README.
 The first release candidate is `@eyeauras/nexus-cli@0.1.0`. [Build and release](docs/release.md)
 describes the TeamCity main-only Verify job, manual npm staging, owner 2FA approval,
 and registry verification. CI configuration and publication are delivery-lead actions;
-package metadata alone is not a publication claim. Core adoption must pass the
-clean registry gate described there before release.
+package metadata alone is not a publication claim. Published Core 0.6.1 adoption
+has passed the full clean local Verify, Pack and DryRun gates described there;
+repeat them for each release revision before staging.
 
 Credential JSON read from stdin is limited to 64 KiB (UTF-8 bytes). Cancellation
 while waiting for input stops before HTTP or credential persistence.

@@ -21,9 +21,14 @@ registry archive matches the official GitHub release archive and manifest: SHA-1
 `d0d5413f329f8d259b000117f1270aaa5f641fbf`, with matching SHA-512 lock integrity.
 The earlier M5/M6 local-overlay receipts remain historical evidence only.
 
-Clean-registry qualification is still pending at this candidate: run full Verify,
-Pack and DryRun at the clean committed head before staging. A local overlay never
-qualifies published adoption. Each release revision requires these gates again.
+Published-Core adoption passed the full clean local Verify, Pack and DryRun gates
+on 2026-11-07: each ran all 435 runtime tests and 2 release-safety tests with zero
+failures or skips. The unchanged standard `test:package` passed after registry
+installation and again against the exact 14-file release archive. Pack and DryRun
+produced identical archive bytes and a `dry-run-verified` receipt. No ignored runner
+or local overlay qualified these results. Each release revision requires these
+gates again; fresh final review, TeamCity verification and staged publication
+remain delivery-lead gates.
 
 ## Local driver
 
