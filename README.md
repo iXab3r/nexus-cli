@@ -44,6 +44,15 @@ Repository names are encoded as one path segment. Availability uses both
 503 exits 1 and never proves authentication. All service errors use stderr in
 ordinary CLI execution and RPC error envelopes, with no response body dump.
 
+Core parser failures, including omitted required options, use `usage` and exit 1.
+Nexus domain validation, such as an invalid selector or unequal delete
+confirmation, exits 2 before HTTP. Both are failures; scripts must stop on any
+nonzero exit. Server statuses retain their HTTP-derived codes: 400 is
+`http.rejected`, 401 is `http.unauthorized`, and 403 is `http.forbidden`.
+Nexus 3.96.3-01 Community can reject a restricted component upload with 400;
+that status alone does not establish a credential or permission diagnosis.
+
+
 ## Development
 
 Use Node.js 22.13 or newer and npm 10 or newer for development.
