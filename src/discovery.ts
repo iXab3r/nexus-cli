@@ -1,4 +1,4 @@
-import { CliError, command, Permission, recordView, tableView, type CommandContext } from "@eyeauras/cli-factory";
+import { CliError, command, Permission, listView, recordView, tableView, type CommandContext } from "@eyeauras/cli-factory";
 import { pathSegment } from "./client.js";
 import { document } from "./mutations.js";
 
@@ -58,12 +58,15 @@ export const formatsCommand = command("formats", "Inspect format requirements", 
   command("upload-specs", "Inspect upload requirements", [
     command("list", "List format upload specifications", async (_input, c) => (await discovery(c, "formats/upload-specs")).map(uploadSpecification), {
       permission: Permission.ReadOnly,
-      view: tableView<UploadSpecification>({columns: [
-        {header: "Format", value: r => r.format},
-        {header: "Multiple upload", value: r => r.multipleUpload},
-        {header: "Component fields", value: r => r.componentFields.map(fieldText).join(", ") || "none"},
-        {header: "Asset fields", value: r => r.assetFields.map(fieldText).join(", ") || "none"},
-      ], empty: "No upload specifications."}),
+      view: listView<string, readonly UploadSpecification[]>({
+        items: specs => specs.flatMap(r => [
+          `Format: ${r.format}`, `Multiple upload: ${r.multipleUpload}`,
+          "Component fields", ...(r.componentFields.length ? r.componentFields.map(fieldText) : ["none"]),
+          "Asset fields", ...(r.assetFields.length ? r.assetFields.map(fieldText) : ["none"]), "",
+        ]),
+        line: value => value,
+        empty: "No upload specifications.",
+      }),
     }),
     command("get <format>", "Inspect one upload specification", async ({args}, c) => uploadSpecification(
       await document(c, "formats/" + pathSegment(String(args.format)) + "/upload-specs")), {
