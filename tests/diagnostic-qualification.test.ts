@@ -17,12 +17,12 @@ const spellings = {
   mixed: (value: string) => encodeURIComponent(value).replace(/%[0-9A-F]{2}/g, triplet =>
     triplet.replace(/[A-F]/g, (hex, index) => index === 1 ? hex.toLowerCase() : hex)),
 };
-const boundaries = ['repository', 'format', 'asset', 'search', 'upload', 'content', 'asset-download', 'search-download'] as const;
+const boundaries = ['repository', 'format', 'asset', 'search', 'upload', 'content', 'asset-download', 'search-download', 'asset-delete', 'component-delete'] as const;
 
 // Real commands own resource discovery and the late known-value copy. The injected runtime
 // models native transport/body errors without mocking command, client, publisher or renderer.
 for (const boundary of boundaries) for (const phase of ['transport', 'body'] as const) {
-  if (boundary === 'upload' && phase === 'body') continue; // 204 acknowledgment never reads a body.
+  if ((boundary === 'upload' || boundary.endsWith('-delete')) && phase === 'body') continue; // 204 acknowledgment never reads a body.
   for (const [spelling, spell] of Object.entries(spellings)) {
     test(`S27 qualification ${boundary} ${phase} ${spelling}`, async t => {
       const resource = 'SYNTHETIC_PRIVATE_é_资源_[x]+_%2f' + (boundary === 'content' ? '' : '\u001b\u0085\u009b');
@@ -33,7 +33,9 @@ for (const boundary of boundaries) for (const phase of ['transport', 'body'] as 
       const output = join(f.root, 'never-published.bin');
       const file = join(f.root, 'synthetic.txt');
       await writeFile(file, 'synthetic upload');
-      const argv = boundary === 'repository' ? ['repositories', 'get', resource]
+      const deletion = boundary === 'asset-delete' || boundary === 'component-delete';
+      const argv = deletion ? [boundary === 'asset-delete' ? 'assets' : 'components', 'delete', resource, '--confirm-id', resource]
+        : boundary === 'repository' ? ['repositories', 'get', resource]
         : boundary === 'format' ? ['formats', 'upload-specs', 'get', resource]
         : boundary === 'asset' ? ['assets', 'get', resource]
         : boundary === 'search' ? ['search', 'assets', '--repository', resource]
@@ -42,9 +44,10 @@ for (const boundary of boundaries) for (const phase of ['transport', 'body'] as 
         : boundary === 'asset-download' ? ['assets', 'download', 'synthetic-id', '--output', output]
         : ['search', 'download', '--repository', resource, '--name', 'artifact.bin', '--output', output];
       let calls = 0;
-      const a = f.createApplication(runtime => createCli({...createDefinition(), runtime: {...runtime, fetch: async input => {
+      const a = f.createApplication(runtime => createCli({...createDefinition(), runtime: {...runtime, fetch: async (input, init) => {
         calls++;
         const url = String(input);
+        if (deletion && init?.method !== 'DELETE') return Response.json({id:resource, assets:[]});
         if (boundary === 'asset-download' && url.endsWith('/assets/synthetic-id')) {
           return Response.json({path: 'artifact.bin', downloadUrl: 'https://nexus.example.test/content/' + encodeURIComponent(resource)});
         }
@@ -109,12 +112,13 @@ for (const boundary of boundaries) for (const phase of ['transport', 'body'] as 
           if (download && json) assert.deepEqual(JSON.parse(r.stdout), {published: false, cleanupFailed: false});
           else if (boundary === 'search' && json) assert.deepEqual(JSON.parse(r.stdout), {items: [], pagesFetched: 0, complete: false, continuationToken: null, resume: {restart: true, token: null}, reason: 'fetchFailed'});
           else if (!download && boundary !== 'search') assert.equal(r.stdout, '');
+          if (deletion && json) assert.equal(JSON.parse(r.stderr).error.code, 'nexus.mutation.outcomeUnknown');
         }
         const rpc = await f.rpc(a, [[...argv, '--profile', 'lab', ...(verbose ? ['--verbose'] : [])]]);
         machine((rpc[0] as any).error.data, verbose);
         if (download) assert.deepEqual((rpc[0] as any).error.data.result, {published: false, cleanupFailed: false});
       }
-      assert.equal(calls, boundary === 'asset-download' ? 12 : 6, 'no retry or extra preflight');
+      assert.equal(calls, boundary === 'asset-download' || deletion ? 12 : 6, 'no retry or extra preflight');
       if (download) await assert.rejects(access(output), {code: 'ENOENT'});
     });
   }
