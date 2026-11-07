@@ -6,7 +6,8 @@ at commit `d01560508901e8169fb1386535ecc5fba9f1a7f3`: .NET 10, Cake Frosting 6.3
 `packageManager` npm version are required. TeamCity uses `node:24-bookworm` on Linux.
 The build project pins Cake's transitive PKCS dependency to patched 10.0.13; see
 [Microsoft's advisory](https://github.com/dotnet/announcements/issues/468).
-No new license grant is made by the release metadata.
+No new Nexus license grant is made by the release metadata. [build/NOTICE](../build/NOTICE)
+preserves the reused template's MIT notice without selecting a product license.
 
 ## Current adoption gate
 
