@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const npmCli = process.env.npm_execpath;
@@ -72,9 +72,30 @@ globalThis.fetch = async (input, init = {}) => {
   return existingFetch(input,init);
 };
 `, {flag: "a"});
+  // Load the installed native binding, but forbid OS credential access in this offline smoke.
+  const secrets = join(temp, "secrets.mjs");
+  await writeFile(secrets, `
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { realpathSync } from "node:fs";
+import { relative } from "node:path";
+import { PlatformSecretStore, MemorySecretStore } from ${JSON.stringify(new URL("./secret-store.js", resolved).href)};
+if (process.platform !== "win32") {
+  const require = createRequire(${JSON.stringify(resolved)});
+  const { Entry } = require("@napi-rs/keyring");
+  const bindings = Object.keys(require.cache).filter(path => path.endsWith(".node"));
+  assert.ok(bindings.length > 0, "The installed native credential binding must load.");
+  for (const path of bindings) assert.ok(!relative(${JSON.stringify(prefix)}, realpathSync(path)).startsWith(".."), "Native bindings must resolve inside the isolated installation.");
+  for (const method of ["getPassword", "setPassword", "deletePassword"]) {
+    Entry.prototype[method] = () => { throw new Error("OS credential storage is disabled in package smoke."); };
+  }
+}
+const memory = new MemorySecretStore();
+for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[method] = memory[method].bind(memory);
+`);
   const home = join(temp, "home");
   await mkdir(home);
-  const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: home, USERPROFILE: home, APPDATA: home, XDG_CONFIG_HOME: home, NODE_OPTIONS: "--require " + JSON.stringify(guard) };
+  const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: home, USERPROFILE: home, APPDATA: home, XDG_CONFIG_HOME: home, NODE_OPTIONS: "--require " + JSON.stringify(guard) + " --import " + JSON.stringify(pathToFileURL(secrets).href) };
   const windows = process.platform === "win32";
   const executable = join(prefix, windows ? "nexus-cli.cmd" : "bin/nexus-cli");
   const invoke = args => windows
