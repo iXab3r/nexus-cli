@@ -1,3 +1,4 @@
+import { operationContext, readContext, readResource, resourceRedactions, statusMessage } from "./diagnostics.js";
 import { lstat } from "node:fs/promises";
 import { openAsBlob } from "node:fs";
 import { basename, resolve } from "node:path";
@@ -24,6 +25,7 @@ export async function mutate(
   method: string,
   body?: FormData | string,
   expectedStatus = 204,
+  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven" } = { operation: "Mutate Nexus metadata" },
 ) {
   const raw =
     c.profile.values.authMode === "anonymous"
@@ -32,23 +34,22 @@ export async function mutate(
   const headers: Record<string, string> = { Accept: "application/json" };
   if (raw) headers.Authorization = authorization(raw);
   if (typeof body === "string") headers["Content-Type"] = "application/json";
+  const url = String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path;
   let response: Response;
   try {
     response = await fetchWithRedirects(
       c.fetch,
-      String(c.profile.values.url).replace(/\/$/, "") +
-        "/service/rest/v1/" +
-        path,
+      url,
       { method, headers, body, signal: c.signal },
     );
   } catch (cause) {
     throw new CliError(
-      "Nexus mutation outcome is unknown. Remote changes may have occurred.",
+      operationContext(diagnostic.operation, diagnostic.repository) + ": Nexus mutation outcome is unknown. Remote changes may have occurred.",
       {
         code: "nexus.mutation.outcomeUnknown",
         cause: diagnosticCause(
           cause,
-          raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [],
+          [...resourceRedactions(url, readResource(path), diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
         ),
       },
     );
@@ -58,7 +59,7 @@ export async function mutate(
   if (response.status !== expectedStatus)
     throw new HttpError(
       response.status,
-      "Nexus mutation did not return its expected acknowledgment. Partial changes may exist.",
+      statusMessage(response.status, operationContext(diagnostic.operation, diagnostic.repository), diagnostic.upload) + " Partial changes may exist.",
     );
 }
 /** Decode one bounded service document without echoing response bodies. */
@@ -74,11 +75,11 @@ export async function document(c: CommandContext, path: string): Promise<any> {
       ),
     );
   } catch (cause) {
-    throw new CliError("Could not decode Nexus metadata.", {
+    throw new CliError(readContext(path) + ": could not decode Nexus metadata.", {
       code: "nexus.decodeFailed",
       cause: diagnosticCause(
         cause,
-        [],
+        resourceRedactions(String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, readResource(path)),
         "Invalid or incomplete Nexus response.",
       ),
     });
@@ -142,7 +143,7 @@ export const uploadCommand = command(
         if (format === "maven" && o.pom !== undefined) {
           if (typeof o.repository !== "string" || !o.repository.trim()) usage("Repository must be nonempty.");
           const form = await pomImport(o, c);
-          await mutate(c, "components?" + new URLSearchParams({repository: String(o.repository)}), "POST", form);
+          await mutate(c, "components?" + new URLSearchParams({repository: String(o.repository)}), "POST", form, 204, {operation: "Upload Maven artifacts", repository: String(o.repository), upload: "maven"});
           return {repository: o.repository, acknowledged: true};
         }
         if (format === "maven" && o.asset !== undefined) usage("Companion assets require --pom.");
@@ -205,6 +206,8 @@ export const uploadCommand = command(
             new URLSearchParams({ repository: String(o.repository) }),
           "POST",
           form,
+          204,
+          {operation: format === "raw" ? "Upload raw artifacts" : "Upload Maven artifacts", repository: String(o.repository), upload: format as "raw" | "maven"},
         );
         return { repository: String(o.repository), acknowledged: true };
       },
@@ -239,60 +242,4 @@ export const uploadCommand = command(
       },
     ),
   ),
-);
-export const formatsCommand = command(
-  "formats",
-  "Inspect format requirements",
-  [
-    command("upload-specs", "Inspect upload requirements", [
-      command(
-        "get <format>",
-        "Inspect one upload specification",
-        async ({ args }, c) => {
-          const value = await document(
-            c,
-            "formats/" + pathSegment(String(args.format)) + "/upload-specs",
-          );
-          if (
-            !value ||
-            typeof value.format !== "string" ||
-            typeof value.multipleUpload !== "boolean" ||
-            !["componentFields", "assetFields"].every(
-              (key) =>
-                Array.isArray(value[key]) &&
-                value[key].every(
-                  (field: any) =>
-                    field &&
-                    typeof field.name === "string" &&
-                    typeof field.optional === "boolean",
-                ),
-            )
-          )
-            throw new CliError("Invalid Nexus upload specification.", {
-              code: "nexus.decodeFailed",
-            });
-          return value;
-        },
-        {
-          permission: Permission.ReadOnly,
-          view: recordView<any>({
-            fields: [
-              { label: "Format", value: (r) => r.format },
-              { label: "Multiple upload", value: (r) => r.multipleUpload },
-            ],
-            sections: [
-              {
-                title: () => "Fields",
-                lines: (r) =>
-                  [...(r.componentFields ?? []), ...(r.assetFields ?? [])].map(
-                    (f: any) =>
-                      `${f.name}: ${f.optional ? "optional" : "required"}`,
-                  ),
-              },
-            ],
-          }),
-        },
-      ),
-    ]),
-  ],
 );

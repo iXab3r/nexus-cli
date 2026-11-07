@@ -1,6 +1,6 @@
 # nexus-cli
 
-Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.6.0**.
+Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.6.1**.
 
 M1 provides profile configuration, Basic or explicit anonymous access, local
 credential status/logout, service availability, and repository list/detail.
@@ -44,9 +44,18 @@ Repository names are encoded as one path segment. Availability uses both
 503 exits 1 and never proves authentication. All service errors use stderr in
 ordinary CLI execution and RPC error envelopes, with no response body dump.
 
+Core parser failures, including omitted required options, use `usage` and exit 1.
+Nexus domain validation, such as an invalid selector or unequal delete
+confirmation, exits 2 before HTTP. Both are failures; scripts must stop on any
+nonzero exit. Server statuses retain their HTTP-derived codes: 400 is
+`http.rejected`, 401 is `http.unauthorized`, and 403 is `http.forbidden`.
+Nexus 3.96.3-01 Community can reject a restricted component upload with 400;
+that status alone does not establish a credential or permission diagnosis.
+
+
 ## Development
 
-Use Node.js 22.13 or newer and npm 10 or newer for development.
+Use Node.js 22.14 or newer, the npm version pinned in `packageManager`, and .NET 10 for the build driver.
 The packaged CLI supports Node.js 22 or newer.
 
 ```sh
@@ -69,8 +78,12 @@ Its dependency-install phase may access npm; command execution is offline.
 Temporary installation files are removed afterward. The archive includes only
 runtime JavaScript, package metadata and this README.
 
-This package is private while under development. No publish, CI service,
-daemon, MCP server or live Nexus testing is configured.
+The first release candidate is `@eyeauras/nexus-cli@0.1.0`. [Build and release](docs/release.md)
+describes the TeamCity main-only Verify job, manual npm staging, owner 2FA approval,
+and registry verification. CI configuration and publication are delivery-lead actions;
+package metadata alone is not a publication claim. Published Core 0.6.1 adoption
+has passed the full clean local Verify, Pack and DryRun gates described there;
+repeat them for each release revision before staging.
 
 Credential JSON read from stdin is limited to 64 KiB (UTF-8 bytes). Cancellation
 while waiting for input stops before HTTP or credential persistence.
@@ -84,11 +97,35 @@ nexus-cli assets list --repository releases --all --max-pages 10
 nexus-cli assets get ASSET_ID
 nexus-cli search components --repository releases --name widget --artifact-version 1.0
 nexus-cli search assets --maven-extension jar --maven-classifier ""
+nexus-cli search assets --repository snapshots --maven-base-version 1.2-SNAPSHOT --sort version --direction desc --prerelease true
+nexus-cli search download --repository snapshots --name widget --maven-base-version 1.2-SNAPSHOT --maven-extension jar --maven-classifier '' --sort version --direction desc --prerelease false --profile lab
 ```
 
-Search accepts repository, name, version, group, format and q; asset search also
-accepts Maven extension and classifier. Empty classifier is preserved. Matching
-and ordering belong to Nexus. IDs and continuation tokens remain opaque.
+All three search commands (`components`, `assets`, `download`) accept
+`--repository`, `--name`, `--artifact-version`, `--group`, `--format`, `--q`,
+`--maven-base-version`, `--sort`, `--direction`, and `--prerelease`.
+Asset search and search download also accept `--maven-extension` and
+`--maven-classifier`. An omitted classifier sends no filter; `--maven-classifier ''`
+sends an empty filter. Maven base version maps to `maven.baseVersion`; it is a
+string, such as `1.2-SNAPSHOT`, distinct from an explicit `--artifact-version`.
+
+`--sort` accepts `group`, `name`, `version`, or `repository`; `--direction` accepts
+`asc` or `desc` and requires `--sort` as a CLI policy. No direction is added when
+omitted. `--prerelease` requires lowercase `true` or `false`, transmitted as a
+lowercase string matching the pinned schema. These filters persist across pages
+and must be supplied again when resuming with a continuation token.
+
+Without sorting, search download retains Nexus's unique-match behavior: ambiguous
+matches fail without creating a file. An explicit sort requests deliberate server
+selection. Matching and ordering belong to Nexus; the CLI performs no local version
+ranking or extra metadata lookup. An explicit artifact version is sent unchanged.
+Downloads report the saved path, bytes, SHA256, and verification status, using the
+final response target's basename by default. They do not infer a selected version
+from a filename or the requested filters. Search listings show versions only when
+returned by Nexus. Selection options require the pinned endpoint schema; this
+offline evidence does not establish live version or edition support.
+
+IDs and continuation tokens remain opaque.
 Metadata download URLs omit userinfo, query and fragment to protect credentials.
 
 Enumeration returns items, pagesFetched, complete, continuationToken, resume and
@@ -104,7 +141,7 @@ on stdout and diagnostics on stderr; RPC puts it in error.data.result.
 There is no snapshot or duplicate-free guarantee across server mutations.
 Narrow server filters when a single page exceeds a limit.
 
-Downloads use Core 0.6.0 publishFile with invocation-cwd defaults and optional
+Downloads use Core 0.6.1 publishFile with invocation-cwd defaults and optional
 `--output`. The parent directory must exist; existing destinations are never overwritten.
 Byte limits and optional SHA256 validation apply before publication. Cleanup failures
 report the actual publication state and exit 1.
@@ -134,6 +171,43 @@ starts has unknown remote outcome. There is no automatic retry. Only HTTP 204
 acknowledges a mutation; it supplies no new component ID, atomicity or rollback
 proof. Maven may generate POM/checksum assets; repository-level edit permission
 is recommended for that workflow (see source contracts).
+
+### Discover blob stores and upload fields
+
+```text
+nexus-cli blobstores list --profile lab
+nexus-cli formats upload-specs list --profile lab --json
+nexus-cli formats upload-specs get raw --profile lab
+```
+
+`blobstores list` uses GET `/service/rest/v1/blobstores` and returns an array of
+`{name,type}`. Upload-spec listing uses GET `/service/rest/v1/formats/upload-specs`
+and returns an array of `{format,multipleUpload,componentFields,assetFields}`;
+`get <format>` returns one such object. Each field contains `name`, `optional`
+and `type` when supplied by the server. Human output separates component fields
+(supplied once per component) from asset fields (supplied for each asset), and
+labels required/optional fields. JSON and RPC carry the same projection. Quotas,
+configuration, descriptions, groups, option maps and unknown attributes are omitted.
+Multipart prefixes, numbered asset fields and binary file parts remain
+format-specific; listing a format does not add an upload implementation for it.
+
+Both lists succeed with an empty array. Each response has a fixed 4 MiB decoded
+byte budget and at most 1,000 entries; each specification allows at most 64
+component fields and 64 asset fields. Every projected name/type, including format,
+has a 256-byte UTF-8 budget and rejects C0/DEL/C1 controls for terminal safety.
+These are CLI resource/output limits, not Nexus schema limits. A malformed,
+truncated or over-budget response fails with `nexus.decodeFailed`, exit 1 and no
+partial result or response-body dump. Format `get` shares these field/label limits.
+No automatic paging or retry is performed for discovery.
+
+Both reads use local ReadOnly permission. Nexus discovery/admin permissions are
+separate from repository create and publish rights: a denied blobstore list does
+not prevent `repositories hosted raw create` with a known `--blob-store` name or
+`components upload` under their own permissions. Neither operation performs a
+discovery preflight. HTTP 401 means rejected authentication for that request;
+403 means the action was denied. This CLI does not provision blob stores or
+manage server RBAC. Shapes come from pinned 3.96.3-01 OpenAPI source, not a live
+edition/version compatibility qualification.
 
 ### Import an original Maven POM
 
@@ -192,3 +266,94 @@ Existing destinations are never overwritten. `--sha256` verifies an expected
 the same streaming, redirect trust, cancellation, cleanup reporting and default
 1 GiB cap (`--max-bytes` overrides it) as asset/search downloads. Results report
 path, bytes, SHA256 and verified. This command does not resolve package dependencies.
+
+Failed Nexus requests identify the operation and, when available, a conservative
+repository label (ASCII letters, digits, dots, underscores and hyphens, up to 64
+characters). Other names appear as “the selected repository” in diagnostics.
+HTTP 401 means authentication was rejected for that request; HTTP 403 means Nexus
+denied the action. Upload HTTP 400 hints name submitted fields and repository
+policy checks; they do not diagnose the server response. Response bodies are not
+included in errors. Local Update denial provides `permissions grant Update`
+guidance before any HTTP request; enabling the local gate does not grant server
+rights. An interrupted mutation still has an unknown outcome and is not retried.
+
+## CI artifact roundtrip
+
+Reproduce the offline packaged story with Node 22:
+
+```sh
+npm ci
+npm test
+npm run test:package
+```
+
+The package harness installs into a temporary prefix, blocks socket connections in
+CLI subprocesses, substitutes only the platform secret-store methods and HTTP
+boundary, and removes its temporary files on exit. It uses a synthetic stdin pair,
+real command parsing/profiles, multipart upload and the real file publisher. npm
+dependency installation may need registry access; the CLI roundtrip is offline.
+No real keyring, Nexus server, container or global installation is needed.
+
+For a separately authorized deployment, the following Bash recipe uses an existing
+raw hosted repository and an already installed CLI. Set `NEXUS_URL`, `REPOSITORY`,
+`SOURCE` and `DESTINATION`; the destination must not exist and its parent must exist.
+Run as an isolated CI OS account with a fresh `ci` profile. The default profile is
+unchanged. Keep the source immutable during upload. Choose a unique destination
+repository path per build; this example uses `ci/artifact.bin`.
+
+```bash
+set -euo pipefail
+set +x
+: "${NEXUS_URL:?}" "${REPOSITORY:?}" "${SOURCE:?}" "${DESTINATION:?}"
+nexus-cli profile create ci --json
+# Feed a JSON {"username":"...","password":"..."} object from your CI secret
+# provider on stdin. This example reads the already protected CREDENTIALS_JSON file.
+: "${CREDENTIALS_JSON:?}"
+nexus-cli profile configure ci --url "$NEXUS_URL" --auth-mode basic \
+  --credentials-stdin --profile ci --json < "$CREDENTIALS_JSON"
+trap 'nexus-cli auth logout --profile ci --json >/dev/null' EXIT
+nexus-cli permissions grant Update --profile ci --json
+sha=$(node --input-type=module -e 'import {readFileSync} from "node:fs"; import {createHash} from "node:crypto"; console.log(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' "$SOURCE")
+nexus-cli components upload raw --repository "$REPOSITORY" --directory ci \
+  --filename artifact.bin --file "$SOURCE" --profile ci --json
+nexus-cli content download --repository "$REPOSITORY" --path ci/artifact.bin \
+  --output "$DESTINATION" --sha256 "$sha" --profile ci --json
+node --input-type=module -e 'import {readFileSync} from "node:fs"; import assert from "node:assert/strict"; assert.deepEqual(readFileSync(process.argv[1]), readFileSync(process.argv[2]))' "$SOURCE" "$DESTINATION"
+```
+
+The shell stops on nonzero exit. Upload success is an acknowledged HTTP 204, not
+an ID or transaction/rollback guarantee. An interrupted upload can have an unknown
+remote outcome: inspect before retrying. Download JSON reports `path`, `bytes`,
+`sha256` and `verified`; checksum mismatch exits nonzero without publishing a new
+file. Existing destinations are never overwritten. The recipe does no enumeration.
+If adding list/search steps, require `complete === true` before claiming completion;
+otherwise inspect `resume` and `reason`, even after an exit-zero single-page result.
+A null resume is not permission to restart blindly.
+
+Credentials require working platform secure storage. On Linux, provision a working
+Secret Service/keyring and its session access for the runner account; installing a
+binary alone does not establish headless readiness. There is no plaintext fallback.
+Windows uses DPAPI; macOS uses its keyring backend. Protect the credential input
+outside the repository and remove it according to your CI provider's lifecycle;
+do not enable shell tracing. Local `auth logout` deletes the local stored pair,
+not the server credential, and does not revoke a Nexus user token.
+
+A Nexus user-token name/pass-code pair can occupy the Basic username/password
+fields. This is a transport statement only: supported server version, licensed
+entitlement, token policy and live compatibility require separate qualification.
+The offline source baseline is Nexus 3.96.3-01, not a live support certification.
+The local Update grant permits CLI execution; it grants no Nexus server rights.
+REST upload needs server repository admission and path edit rights; see the
+[pinned upload source contract](docs/source-contracts.md#rest-upload-permissions-and-fields).
+
+Use native npm, NuGet, Maven, Docker and Python package clients for their package
+resolution, dependency, build and protocol workflows. This CLI supplies Nexus REST
+management and supported raw/Maven transfers; it does not replace those clients.
+Publish this raw recipe to a hosted repository. Proxy repositories cache upstream
+content and groups aggregate repositories for consumption; they are not this
+recipe's publication target. These distinctions follow the
+[pinned Nexus source](https://github.com/sonatype/nexus-public/tree/829f297c35984a5fac590a366e949cd9a9a2eb79)
+and [product/source baseline](docs/product-contract.md).
+Secure-store and profile behavior follows
+[CliFactory 0.6.1](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/DESIGN.md).
+The offline secret-store substitute proves no platform keyring or live entitlement.

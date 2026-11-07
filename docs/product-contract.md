@@ -1,6 +1,6 @@
 # Nexus CLI product contract
 
-[Owner approval](https://github.com/iXab3r/nexus-cli/issues/1#issuecomment-6690348756) authorizes S01–S23 across four milestones. S24 is deferred. npm publication, TeamCity changes and live Nexus access remain excluded.
+[Owner approval](https://github.com/iXab3r/nexus-cli/issues/1#issuecomment-6690348756) authorizes S01–S23 across four milestones. S24 is deferred. The subsequent release task authorizes TeamCity configuration and the first staged npm release, with review, configuration application, merge and publication retained by the delivery lead. See [release setup](release.md). Live Nexus access remains separately scoped.
 
 ## Reproducible specification provenance
 
@@ -10,11 +10,11 @@ Run `python3 docs/api/generate_inventory.py` from repository root. Python standa
 
 ## Approved product scope
 
-Initial scope is a standalone CLI for self-hosted Nexus 3, Basic username/password via custom AuthDefinition and explicit anonymous mode, raw/Maven REST publication, bounded discovery/download and raw hosted inspection/create. Keep CliFactory v0.6.0 pinned. Source 3.96.3-01 is the reproducible offline fixture baseline, NOT a recommendation to install that patch. Recommend a currently maintained self-hosted Community release for separately authorized compatibility proof; exact deployment patch is an owner selection with API delta review before claiming support. Pro/token-pair entitlement and Cloud remain outside the first support claim.
+Initial scope is a standalone CLI for self-hosted Nexus 3, Basic username/password via custom AuthDefinition and explicit anonymous mode, raw/Maven REST publication, bounded discovery/download and raw hosted inspection/create. Keep CliFactory v0.6.1 pinned. Source 3.96.3-01 is the reproducible offline fixture baseline, NOT a recommendation to install that patch. Recommend a currently maintained self-hosted Community release for separately authorized compatibility proof; exact deployment patch is an owner selection with API delta review before claiming support. Pro/token-pair entitlement and Cloud remain outside the first support claim.
 
 Installation URL preserves explicit port/context prefix before /service/rest. Pagination tokens are opaque; no snapshot consistency or total count inferred. Search/download uses server ordering and match semantics, preserving explicit empty classifier filters. No automatic mutation retries; transport loss after send is nexus.mutation.outcomeUnknown.
 
-The completed source conclusions, exact call sites, limitations and published framework API are in [source-contracts.md](source-contracts.md). S15/S16 retain arbitrary --output; the removed profile-file API did not supply that UX. Use the published Core 0.6.0 publishFile API described there, with invocation-cwd defaults and optional explicit output. The additive framework extension is separately approved and outside this repository’s implementation scope. Hosted GET has a concrete raw adapter; hosted PUT supports disposition but not proxy forwarding controls. S24 is deferred. REST generated POM does not repeat the submitted asset's selector check; acceptance must describe this accurately.
+The completed source conclusions, exact call sites, limitations and published framework API are in [source-contracts.md](source-contracts.md). S15/S16 retain arbitrary --output; the removed profile-file API did not supply that UX. Use the published Core 0.6.1 publishFile API described there, with invocation-cwd defaults and optional explicit output. The additive framework extension is separately approved and outside this repository’s implementation scope. Hosted GET has a concrete raw adapter; hosted PUT supports disposition but not proxy forwarding controls. S24 is deferred. REST generated POM does not repeat the submitted asset's selector check; acceptance must describe this accurately.
 
 ## Shared acceptance contract
 

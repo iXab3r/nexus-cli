@@ -1,8 +1,7 @@
 {
   "name": "@eyeauras/nexus-cli",
   "version": "0.1.0",
-  "private": true,
-  "description": "Standalone Nexus Repository connection and discovery CLI",
+  "description": "Inspect and manage Sonatype Nexus Repository",
   "type": "module",
   "bin": {
     "nexus-cli": "dist/src/bin.js"
@@ -17,14 +16,27 @@
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test dist/tests/*.test.js",
     "test:package": "npm run build && node scripts/test-package.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test:registry": "node scripts/test-registry.mjs"
   },
   "dependencies": {
-    "@eyeauras/cli-factory": "0.6.0"
+    "@eyeauras/cli-factory": "0.6.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "~5.9.3",
     "msw": "^2.11.0"
+  },
+  "packageManager": "npm@11.21.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iXab3r/nexus-cli.git"
+  },
+  "homepage": "https://github.com/iXab3r/nexus-cli#readme",
+  "bugs": {
+    "url": "https://github.com/iXab3r/nexus-cli/issues"
   }
 }

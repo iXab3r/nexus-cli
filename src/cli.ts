@@ -1,6 +1,6 @@
 import { downloadCommand } from "./downloads.js";
 import { hostedCommand } from "./hosted.js";
-import { formatsCommand } from './mutations.js';
+import { blobstoresCommand, formatsCommand } from "./discovery.js";
 import { readFileSync } from "node:fs";
 import {
   command,
@@ -56,6 +56,7 @@ export function createDefinition(): CliDefinition {
     commands: [
       ...readCommands,
       command("content", "Retrieve known repository content", [downloadCommand(false, true)]),
+      blobstoresCommand,
       formatsCommand,
       command(
         "status",

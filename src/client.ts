@@ -1,3 +1,4 @@
+import { readContext, readResource, resourceRedactions, statusMessage } from "./diagnostics.js";
 import {
   CliError,
   HttpError,
@@ -38,20 +39,19 @@ export async function request(
       : await context.secrets.require("credentials"));
   const headers: Record<string, string> = { Accept: "application/json" };
   if (raw) headers.Authorization = authorization(raw);
+  const url = String(context.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path;
   try {
     return await fetchWithRedirects(
       context.fetch,
-      String(context.profile.values.url).replace(/\/$/, "") +
-        "/service/rest/v1/" +
-        path,
+      url,
       { headers, signal: context.signal },
     );
   } catch (cause) {
-    throw new CliError("Could not read Nexus service.", {
+    throw new CliError(readContext(path) + ": request failed.", {
       code: "nexus.requestFailed",
       cause: diagnosticCause(
         cause,
-        raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [],
+        [...resourceRedactions(url, readResource(path)), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
       ),
     });
   }
@@ -63,7 +63,7 @@ export async function checked(
   const response = await request(context, path);
   if (response.status !== 200) {
     void response.body?.cancel();
-    throw new HttpError(response.status, "Nexus request was refused.");
+    throw new HttpError(response.status, statusMessage(response.status, readContext(path)));
   }
   return response;
 }
@@ -97,10 +97,8 @@ export async function repositories(
   context: CommandContext,
   name?: string,
 ): Promise<Repository[] | Repository> {
-  const response = await checked(
-    context,
-    "repositories" + (name === undefined ? "" : "/" + pathSegment(name)),
-  );
+  const path = "repositories" + (name === undefined ? "" : "/" + pathSegment(name));
+  const response = await checked(context, path);
   let data: unknown;
   try {
     data = JSON.parse(
@@ -112,9 +110,9 @@ export async function repositories(
       ).toString("utf8"),
     );
   } catch (cause) {
-    throw new CliError("Could not decode Nexus repositories.", {
+    throw new CliError(readContext("repositories" + (name === undefined ? "" : "/" + pathSegment(name))) + ": could not decode response.", {
       code: "nexus.decodeFailed",
-      cause: diagnosticCause(cause, [], "Invalid or incomplete JSON response."),
+      cause: diagnosticCause(cause, resourceRedactions(String(context.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, name), "Invalid or incomplete JSON response."),
     });
   }
   if (name !== undefined) return repository(data);

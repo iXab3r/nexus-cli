@@ -6,7 +6,7 @@ Every command below is prefixed with `nexus-cli`. The shared acceptance contract
 
 Given valid input and a permitted target, when the example runs, then the stated result appears and exit is 0. Given denied local gate, no service call occurs; given server 401/403, exit 1 with Core http.unauthorized/http.forbidden and no success result. All service reads/downloads are ReadOnly; mutations are Update disabled by default. Server repository-view browse/read, upload/edit/delete or repository-admin rights remain separately required; list visibility may be filtered rather than denied. No category grants remote rights.
 
-Given malformed input, fail before side effects with Core usage behavior; transport/decode/server errors exit 1 with contextual stable codes, retained causes, redacted secrets and no response-body dump. Empty collections are successful; absent singular resources fail. Given partial pagination/transfer/mutation uncertainty, apply the story-specific rule rather than success. Single-response reads have no partial result; local profile/auth operations have no server mutation. Every story must verify stdout data vs stderr diagnostics in packaged human/JSON execution and representative RPC envelope. These scenarios plus each story's specifics form the required Given/When/Then acceptance set.
+Given malformed input, fail before side effects with Core usage behavior: parser failures such as omitted required options exit 1, while Nexus domain validation exits 2; transport/decode/server errors exit 1 with contextual stable codes, retained causes, redacted secrets and no response-body dump. Empty collections are successful; absent singular resources fail. Given partial pagination/transfer/mutation uncertainty, apply the story-specific rule rather than success. Single-response reads have no partial result; local profile/auth operations have no server mutation. Every story must verify stdout data vs stderr diagnostics in packaged human/JSON execution and representative RPC envelope. These scenarios plus each story's specifics form the required Given/When/Then acceptance set.
 
 ## S01 — Configure a connection
 
@@ -342,7 +342,7 @@ nexus-cli repositories hosted raw update raw-releases --online false
 
 ## Source-closed acceptance additions
 
-S15/S16: retain --output and no overwrite; delivery uses the published Core 0.6.0 publishFile API. Include initial URL origin validation, redirect chain stripping, byte/length/hash validation and truthful cleanup outcomes from product-contract.md.
+S15/S16: retain --output and no overwrite; delivery uses the published Core 0.6.1 publishFile API. Include initial URL origin validation, redirect chain stripping, byte/length/hash validation and truthful cleanup outcomes from product-contract.md.
 
 S18: repository browse/read admission and path EDIT are separate server checks; model selector denial before write. S19: explicitly send generation=true and packaging=jar; generated POM and checksum assets do not have a separate selector check in the pinned path. Report acknowledged upload, never exact one-asset creation or atomic rollback; recommend repository-level edit for this supported workflow.
 
