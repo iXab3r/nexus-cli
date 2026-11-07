@@ -49,7 +49,7 @@ export async function mutate(
         code: "nexus.mutation.outcomeUnknown",
         cause: diagnosticCause(
           cause,
-          [...resourceRedactions(url, diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
+          [...resourceRedactions(url, readResource(path), diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
         ),
       },
     );
