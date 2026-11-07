@@ -55,7 +55,7 @@ that status alone does not establish a credential or permission diagnosis.
 
 ## Development
 
-Use Node.js 22.13 or newer, the npm version pinned in `packageManager`, and .NET 10 for the build driver.
+Use Node.js 22.14 or newer, the npm version pinned in `packageManager`, and .NET 10 for the build driver.
 The packaged CLI supports Node.js 22 or newer.
 
 ```sh

@@ -10,10 +10,13 @@ esac
 stage_token="${NPM_TOKEN-}"
 github_token="${GITHUB_TOKEN-}"
 for key in $(compgen -e); do
-    case "${key^^}" in *TOKEN*|NPM_CONFIG_*) unset "$key" ;; esac
+    case "$key" in
+        PATH|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|SystemRoot|WINDIR|COMSPEC|PATHEXT|TEMP|TMP|TMPDIR|XDG_CONFIG_HOME|XDG_CACHE_HOME|XDG_DATA_HOME|XDG_RUNTIME_DIR|DOTNET_ROOT|DOTNET_ROOT_X64|DOTNET_CLI_HOME|NUGET_PACKAGES|RELEASE_REVISION|LANG|LC_ALL) ;;
+        *) unset "$key" ;;
+    esac
 done
 export CI=true DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$PWD"
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$(pwd)"
 tools_dir="$(mktemp -d)"
 cleanup() {
     if [[ "$mode" != --verify-only && -d output/release ]]; then
@@ -26,6 +29,7 @@ if [[ "$mode" != --verify-only ]]; then
     # No receipt from an earlier agent checkout may stand in for this run.
     rm -rf -- output/release
 fi
+export NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 export NPM_CONFIG_USERCONFIG="$tools_dir/npmrc" NPM_CONFIG_GLOBALCONFIG="$tools_dir/global-npmrc"
 : > "$NPM_CONFIG_USERCONFIG"
 : > "$NPM_CONFIG_GLOBALCONFIG"

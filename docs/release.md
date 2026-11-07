@@ -2,7 +2,7 @@
 
 This implementation follows [opensearch-cli](https://github.com/iXab3r/opensearch-cli/tree/d01560508901e8169fb1386535ecc5fba9f1a7f3)
 at commit `d01560508901e8169fb1386535ecc5fba9f1a7f3`: .NET 10, Cake Frosting 6.3.0,
-`build/teamcity.sh`, main-only Verify and manual npm staging. Node 22.13+ and the exact
+`build/teamcity.sh`, main-only Verify and manual npm staging. Node 22.14+ and the exact
 `packageManager` npm version are required. TeamCity uses `node:24-bookworm` on Linux.
 The build project pins Cake's transitive PKCS dependency to patched 10.0.13; see
 [Microsoft's advisory](https://github.com/dotnet/announcements/issues/468).
@@ -91,8 +91,9 @@ resolve, dump, embed or supply either credential as a queue parameter. Ensure th
 existing protected bindings permit the new package/repository before live staging.
 No Git credential is required for the public anonymous source root.
 
-The wrapper clears token/config environment before bootstrap and passes only the
-selected token into Cake. Cake strips tokens from verification children, passes
+The wrapper admits only named system/tool variables before bootstrap and passes only
+the selected token into Cake. Cake independently admits only named system/tool variables
+and creates empty private npm user/global configs for ordinary npm children. It passes
 npm auth only to staging, and writes GitHub authorization to a private temporary
 header file. Temporary auth files stay outside the checkout and are removed on exit.
 TeamCity receives `output/release/* => npm-release.zip`, including on failure after

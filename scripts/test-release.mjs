@@ -62,6 +62,7 @@ const stage = tool === 'npm' && args[0] === 'stage';
 assert.equal(process.env.NPM_TOKEN, stage ? 'synthetic-stage-credential' : undefined);
 if (tool === 'npm') {
   const config = fs.readFileSync(process.env.NPM_CONFIG_USERCONFIG, 'utf8');
+  assert.equal(fs.readFileSync(process.env.NPM_CONFIG_GLOBALCONFIG,'utf8'),'');
   assert.equal(config, stage ? '//registry.npmjs.org/:_authToken=\${NPM_TOKEN}\\n' : '');
   assert.ok(!process.env.NPM_CONFIG_USERCONFIG.startsWith(path.dirname(manifestPath)));
 }
@@ -140,9 +141,7 @@ test("TeamCity bootstrap excludes unrelated credentials and ambient npm settings
   const temp = await mkdtemp(join(tmpdir(), "nexus-bootstrap-test-"));
   try {
     const bins = join(temp,"bin"); await mkdir(bins); await mkdir(join(temp,"build"));
-    // The old Linux wrapper used Bash4 case folding; all fixture names are uppercase,
-    // so this equivalent spelling also lets macOS Bash3 reproduce its environment boundary.
-    await writeFile(join(temp,"build/teamcity.sh"),(await readFile(join(root,"build/teamcity.sh"),"utf8")).replaceAll("${key^^}","$key"));
+    await copyFile(join(root,"build/teamcity.sh"),join(temp,"build/teamcity.sh"));
     await writeFile(join(temp,"package.json"),JSON.stringify({version:"0.1.0",packageManager:"npm@11.21.1"}));
     await writeFile(join(temp,".npmrc"),"");
     const log = join(temp,"bootstrap.jsonl");
