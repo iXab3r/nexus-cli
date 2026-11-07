@@ -159,6 +159,43 @@ acknowledges a mutation; it supplies no new component ID, atomicity or rollback
 proof. Maven may generate POM/checksum assets; repository-level edit permission
 is recommended for that workflow (see source contracts).
 
+### Discover blob stores and upload fields
+
+```text
+nexus-cli blobstores list --profile lab
+nexus-cli formats upload-specs list --profile lab --json
+nexus-cli formats upload-specs get raw --profile lab
+```
+
+`blobstores list` uses GET `/service/rest/v1/blobstores` and returns an array of
+`{name,type}`. Upload-spec listing uses GET `/service/rest/v1/formats/upload-specs`
+and returns an array of `{format,multipleUpload,componentFields,assetFields}`;
+`get <format>` returns one such object. Each field contains `name`, `optional`
+and `type` when supplied by the server. Human output separates component fields
+(supplied once per component) from asset fields (supplied for each asset), and
+labels required/optional fields. JSON and RPC carry the same projection. Quotas,
+configuration, descriptions, groups, option maps and unknown attributes are omitted.
+Multipart prefixes, numbered asset fields and binary file parts remain
+format-specific; listing a format does not add an upload implementation for it.
+
+Both lists succeed with an empty array. Each response has a fixed 4 MiB decoded
+byte budget and at most 1,000 entries; each specification allows at most 64
+component fields and 64 asset fields. Every projected name/type, including format,
+has a 256-byte UTF-8 budget and rejects C0/DEL/C1 controls for terminal safety.
+These are CLI resource/output limits, not Nexus schema limits. A malformed,
+truncated or over-budget response fails with `nexus.decodeFailed`, exit 1 and no
+partial result or response-body dump. Format `get` shares these field/label limits.
+No automatic paging or retry is performed for discovery.
+
+Both reads use local ReadOnly permission. Nexus discovery/admin permissions are
+separate from repository create and publish rights: a denied blobstore list does
+not prevent `repositories hosted raw create` with a known `--blob-store` name or
+`components upload` under their own permissions. Neither operation performs a
+discovery preflight. HTTP 401 means rejected authentication for that request;
+403 means the action was denied. This CLI does not provision blob stores or
+manage server RBAC. Shapes come from pinned 3.96.3-01 OpenAPI source, not a live
+edition/version compatibility qualification.
+
 ### Import an original Maven POM
 
 ```sh
