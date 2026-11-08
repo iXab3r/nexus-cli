@@ -67,6 +67,9 @@ globalThis.fetch = async (input, init = {}) => {
   if (url.searchParams.get("q") === "SYNTHETIC PRIVATE SELECTOR") {
     throw Object.assign(new Error("synthetic socket failed " + url.searchParams), {code:"ECONNRESET"});
   }
+  if (url.searchParams.get("q")?.startsWith("M9_PRIVATE_SELECTOR_PREFIX")) {
+    throw Object.assign(new Error("synthetic socket failed M9_PRIVATE_SELECTOR_PREFIX token=[redacted]"), {code:"ECONNRESET"});
+  }
   if (url.pathname.endsWith("/quota-status")) {
     require("node:assert/strict").equal(init.method ?? "GET", "GET");
     require("node:assert/strict").equal(url.search, "");
@@ -167,6 +170,10 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   assert.equal(privateQuery.status,1);
   assert.doesNotMatch(privateQuery.stdout+privateQuery.stderr,/SYNTHETIC|PRIVATE/);
   assert.match(privateQuery.stderr,/ECONNRESET/);
+  const copiedQuery = spawnSync(executable,["search","assets","--q","M9_PRIVATE_SELECTOR_PREFIX token=SYNTHETIC_VALUE","--profile","public","--json"],{env,cwd:temp,encoding:"utf8",timeout:30000});
+  assert.equal(copiedQuery.status,1);
+  assert.doesNotMatch(copiedQuery.stdout+copiedQuery.stderr,/M9_PRIVATE_SELECTOR_PREFIX|SYNTHETIC_VALUE/);
+  assert.match(copiedQuery.stderr,/ECONNRESET/);
   console.log("Installed native search selectors, timeout and digest distinction passed offline.");
 
   for (const [argv, expected, human] of [
