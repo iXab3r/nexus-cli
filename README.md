@@ -7,9 +7,10 @@ coordinates server/CLI contract work. Full Nexus parity is outside the product g
 
 **Current evidence:** published v0.1.0 is the delivered Nexus baseline. The commands and
 examples below describe that baseline; they are not a claim of qualified Depot support.
-Depot connection, package read/download, publication and whole-version deletion are the
-[next contract-blocked story drafts](docs/stories.md#current-depot-drafts). Historical Maven
-commands do not select Maven for Depot.
+Depot connection, package read/download and whole-version deletion are the
+[next contract-blocked story drafts](docs/stories.md#current-depot-drafts). Publication belongs
+to each format's native clients. Depot targets 20+ formats while this CLI stays on common
+resources and management workflows. Historical Maven commands do not select Maven for Depot.
 
 M1 provides profile configuration, Basic or explicit anonymous access, local
 credential status/logout, service availability, and repository list/detail.
