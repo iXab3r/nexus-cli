@@ -67,6 +67,9 @@ globalThis.fetch = async (input, init = {}) => {
   if (url.searchParams.get("q") === "SYNTHETIC PRIVATE SELECTOR") {
     throw Object.assign(new Error("synthetic socket failed " + url.searchParams), {code:"ECONNRESET"});
   }
+  if (url.searchParams.get("q") === "M9_PRIVATE_SELECTOR_PREFIX https://synthetic:private@host.example.test") {
+    throw Object.assign(new Error("synthetic socket failed (M9_PRIVATE_SELECTOR_PREFIX https://redacted@host.example.test);/ context"), {code:"ECONNRESET"});
+  }
   if (url.searchParams.get("q")?.startsWith("M9_PRIVATE_SELECTOR_PREFIX")) {
     throw Object.assign(new Error("synthetic socket failed M9_PRIVATE_SELECTOR_PREFIX token=[redacted]"), {code:"ECONNRESET"});
   }
@@ -174,6 +177,10 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   assert.equal(copiedQuery.status,1);
   assert.doesNotMatch(copiedQuery.stdout+copiedQuery.stderr,/M9_PRIVATE_SELECTOR_PREFIX|SYNTHETIC_VALUE/);
   assert.match(copiedQuery.stderr,/ECONNRESET/);
+  const contextualQuery = spawnSync(executable,["search","assets","--q","M9_PRIVATE_SELECTOR_PREFIX https://synthetic:private@host.example.test","--profile","public","--json"],{env,cwd:temp,encoding:"utf8",timeout:30000});
+  assert.equal(contextualQuery.status,1);
+  assert.doesNotMatch(contextualQuery.stdout+contextualQuery.stderr,/M9_PRIVATE_SELECTOR_PREFIX|host\.example\.test/);
+  assert.match(contextualQuery.stderr,/ECONNRESET/);
   console.log("Installed native search selectors, timeout and digest distinction passed offline.");
 
   for (const [argv, expected, human] of [
