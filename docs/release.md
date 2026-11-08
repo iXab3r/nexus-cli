@@ -11,9 +11,12 @@ preserves the reused template's MIT notice without selecting a product license.
 
 ## Current adoption gate
 
-The first package candidate is `@eyeauras/nexus-cli@0.1.0`; its executable reads the
-version from package.json. The public npm registry returned 404 for this name on
-2026-11-07. This does not reserve the name or prove publishing rights.
+The first release `@eyeauras/nexus-cli@0.1.0` is published on npm, with the matching
+[GitHub Release](https://github.com/iXab3r/nexus-cli/releases/tag/v0.1.0).
+The executable reads the version from package.json. The next release candidate is
+**0.2.0**, incorporating the accepted M7–M9 changes: known-store quota status, exact
+int64 metadata and the complete pinned scalar search selectors. A prepared candidate
+is not a published version; Stage still requires owner approval on npm.
 
 The manifest and lock now pin published Core **0.6.1**, with instruction links at
 release commit `c313194f8cd22547dae6ae8693a2771f3a5066f0`. Its freshly downloaded
@@ -44,7 +47,7 @@ and the release safety test. Dependency installation uses the registry; CLI serv
 operations use only synthetic offline boundaries. No live Nexus test runs in CI.
 Pack also runs Verify and writes `output/release/` with the archive and
 `release-manifest.json` (name, version, commit, filename, SHA-1 and SHA-512 integrity).
-It then installs and tests that exact tarball, including its 14-member allowlist,
+It then installs and tests that exact tarball, including its executable archive allowlist,
 executable version, human/JSON/RPC flows, synthetic transfers and CI recipe. Core
 must resolve within the temporary installed prefix. Tests/source/build tooling are
 excluded from the archive.
