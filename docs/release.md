@@ -11,12 +11,14 @@ preserves the reused template's MIT notice without selecting a product license.
 
 ## Current adoption gate
 
-The first release `@eyeauras/nexus-cli@0.1.0` is published on npm, with the matching
-[GitHub Release](https://github.com/iXab3r/nexus-cli/releases/tag/v0.1.0).
-The executable reads the version from package.json. The next release candidate is
-**0.2.0**, incorporating the accepted M7–M9 changes: known-store quota status, exact
-int64 metadata and the complete pinned scalar search selectors. A prepared candidate
-is not a published version; Stage still requires owner approval on npm.
+The current release is **`@eyeauras/nexus-cli@0.2.0`**, published as npm `latest`,
+with the matching [GitHub Release](https://github.com/iXab3r/nexus-cli/releases/tag/v0.2.0).
+It includes the accepted M7–M9 changes: known-store quota status, exact int64 metadata
+and the complete pinned scalar search selectors. The executable reads its version
+from package.json. [Publication evidence](https://github.com/iXab3r/nexus-cli/pull/667#issuecomment-6727401540)
+records owner 2FA approval, successful registry-installed checks and the verified
+archive/manifest at source commit `7b2352e627740c13668aebad33e65163220234e2`.
+Future stages still require owner approval on npm before publication.
 
 The manifest and lock now pin published Core **0.6.1**, with instruction links at
 release commit `c313194f8cd22547dae6ae8693a2771f3a5066f0`. Its freshly downloaded
@@ -61,7 +63,11 @@ Stage, or the dry-run path with `--dry-run`; neither approves npm publication.
 `--exclusive` skips task dependencies and is only for a reviewed recovery; it is
 not a replacement for Verify/Pack evidence.
 
-Use LF for package text and emitted JavaScript so the same commit repacks identically.
+Use LF for package text and emitted JavaScript. Different Node/zlib versions can
+produce different gzip bytes even when the decompressed tar is identical, as observed
+between the local Node 26 and CI Node 24 archives for 0.2.0. The tested CI archive is
+the canonical release artifact: compare its exact SHA-512 through DryRun, Stage and
+VerifyRegistry, and do not substitute a local repack.
 `npm run test:package -- --tarball /absolute/archive.tgz` checks a supplied archive;
 `npm run test:registry -- 0.1.0` fetches and tests the registry archive instead.
 Both use disposable npm config/cache/prefix and isolated CLI AppData.
