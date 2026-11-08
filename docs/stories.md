@@ -1,27 +1,4 @@
-# User stories
-
-**Current scope:** [Depot package hosting](depot-compatibility.md). S01–S30 retain their
-original Nexus acceptance/evidence. They are not Depot qualification. Historical S24 and
-Nexus-edition token administration S31 are outside the current Depot plan. New Depot story
-drafts are coordinated under [Depot #210](https://github.com/iXab3r/EyeAuras.Depot/issues/210);
-no implementation milestone is approved by this documentation update.
-
-## Current Depot drafts
-
-These drafts are contract-blocked and have no implementation milestone. Commands and exact
-operation dependencies require agreement under Depot #210 before pickup.
-
-| Story | User result |
-|---|---|
-| [S32 #638](https://github.com/iXab3r/nexus-cli/issues/638) | Connect using an existing Depot user token with isolated secure profiles |
-| [S33 #639](https://github.com/iXab3r/nexus-cli/issues/639) | Find packages/versions/files and download with identity/integrity preserved |
-| [S35 #641](https://github.com/iXab3r/nexus-cli/issues/641) | Remove a whole package/version under independent current Delete authority |
-
-S34 [#640](https://github.com/iXab3r/nexus-cli/issues/640) is closed NOT_PLANNED: publication
-belongs to native clients under [owner decision #643](https://github.com/iXab3r/nexus-cli/issues/643).
-The CLI does not gain format-specific publishers or native-client process wrappers.
-
-## Historical Nexus acceptance
+# Approved user stories
 
 Every command below is prefixed with `nexus-cli`. The shared acceptance contract in product-contract.md and exact source/output contracts in source-contracts.md are part of every story below. S01–S23 and their order are approved; S24 retains its stable identity but is deferred. Tracker relationships must be verified separately. Profile/auth flags specific to Basic are proposed integration declarations, not claims of existing framework flags. All stories support Core human/JSON output and the same command tree in RPC. Secret stdin is unavailable in RPC; configure separately with the packaged CLI.
 
@@ -347,7 +324,7 @@ nexus-cli repositories hosted raw create raw-releases --blob-store default --wri
 - Permissions and boundaries: Update; repository-admin create; existing blob store only, no default server policy guessed beyond supplied fields.
 - Required operation identities: createRepositoriesRawHosted. Resolve against inventory.json; external content GET is explicitly not an OpenAPI operation.
 
-## S24 — Historical unselected: Change explicit raw hosted settings
+## S24 — DEFERRED: Change explicit raw hosted settings
 
 Assignment: see [approved milestones](milestones.md).
 
