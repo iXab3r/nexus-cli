@@ -64,3 +64,18 @@ The broader attributes map remains unimplemented: this outcome enhances two
 reachable operations without promoting either to full-contract coverage. The
 12 covered + 8 partial + 422 missing census and reachability of 20 stay unchanged.
 No new publication or live-service authorization is included.
+
+## Approved upload-field metadata extension
+
+[M11](https://github.com/iXab3r/nexus-cli/milestone/11) contains one ReadOnly story,
+[Q5 #672](https://github.com/iXab3r/nexus-cli/issues/672), selected in
+[this receipt](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6728543243).
+It completes description, group, groupHelpText and string-valued options for the
+existing upload-spec list/get responses, including source-backed null semantics.
+Native blocked-by relationships to API #80/#81 precede milestone assignment.
+The reviewed [plan](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6728543033)
+requires committed real-command RED, GREEN/docs, installed-package proof and fresh
+independent whole-milestone review with every accepted finding resolved. Promotion
+of the two partial operation contracts waits for verified final-head completeness;
+command reachability is unchanged. No new upload authoring, publication or live
+service/edition qualification is included.

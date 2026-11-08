@@ -46,6 +46,28 @@ userCanBrowseRepositories; detail permits repository read/browse through the
 permission checker, including applicable content-selector evaluation. Local
 ReadOnly, Basic/anonymous modes and existing response/item budgets remain unchanged.
 
+## Upload-field metadata (Q5)
+
+The pinned public `rest/api/UploadDefinitionResource` converts both GET responses
+with `UploadDefinitionXO.fromWithAssetFileField`. Root fields are format,
+multipleUpload, componentFields and assetFields. It appends a synthetic asset
+field named `asset`, type `FILE`, optional=false; preserve this server-returned
+metadata rather than adding it locally or restricting type to the model enum.
+Detail throws 404 for a missing definition or apiUpload=false. There is no explicit
+permission annotation on the inspected resource methods; this does not establish
+anonymous admission or live entitlement under the server's global security policy.
+
+`UploadFieldDefinitionXO.from` maps name, type.name(), helpText→description,
+optional, group, groupHelpText and options. Model constructors allow null help,
+group, group help and whole options. Options describe SELECT choices as a
+Map<String,String>; the DTO conversion does not remove maps supplied for another
+type. Accept omitted/null/empty new metadata distinctly and preserve all own
+string option entries safely, including prototype-like keys. The CLI's existing
+label/response/field-count budgets and new text/map budgets are resource limits,
+not source schema limits. Human controls are escaped without changing admitted
+JSON/RPC strings. Unknown root/field properties stay private; recognized field
+metadata is service data, not arbitrary configuration or inferred defaults.
+
 ## Hosted GET and PUT
 
 Under `public/common/components/nexus-repository-services/src/main/java/org/sonatype/nexus/repository/rest/api/`, `AbstractRepositoriesApiResource.setConvertersByFormat` builds the qualifier map from injected adapters; GET selects the format adapter, falling back to the default. Raw V1 inherits the hosted resource GET. Under `public/common/components/formats/nexus-repository-raw/src/main/java/org/sonatype/nexus/repository/raw/`, `RawRepositoryAdapter` is `@Component @Qualifier(RawFormat.NAME)` and its hosted switch constructs `RawHostedApiRepository` with storage, cleanup, component and raw. Its getters serialize concrete properties despite the abstract OpenAPI return type. `RawRepositoryAdapterTest` supplies upstream coverage.
