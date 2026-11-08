@@ -243,10 +243,18 @@ nexus-cli formats upload-specs get raw --profile lab
 `{name,type}`. Upload-spec listing uses GET `/service/rest/v1/formats/upload-specs`
 and returns an array of `{format,multipleUpload,componentFields,assetFields}`;
 `get <format>` returns one such object. Each field contains `name`, `optional`
-and `type` when supplied by the server. Human output separates component fields
-(supplied once per component) from asset fields (supplied for each asset), and
-labels required/optional fields. JSON and RPC carry the same projection. Quotas,
-configuration, descriptions, groups, option maps and unknown attributes are omitted.
+and `type` when supplied, plus optional `description`, `group`, `groupHelpText`
+and `options`. The new text fields and whole options map may be null. JSON/RPC
+preserve missing, null and empty values, field order, duplicate field names and
+every admitted string option key/value, including prototype-like keys. Unknown
+root/field properties remain omitted; blobstore listing still exposes name/type.
+Human output separates component fields (supplied once per component) from asset
+fields (supplied for each asset), with requiredness, explanations and readable
+choice labels. Present null metadata says `not reported`, empty text `(empty)` and
+empty options `none`; omitted metadata lines are absent. Literal markup is shown
+as text and C0/DEL/C1 controls are escaped only in human output. No option default
+or grouping is inferred. Nexus adds an `asset` field with type `FILE`; the CLI
+keeps this returned field without inventing or deduplicating it locally.
 Multipart prefixes, numbered asset fields and binary file parts remain
 format-specific; listing a format does not add an upload implementation for it.
 
@@ -254,13 +262,22 @@ Both lists succeed with an empty array. Each response has a fixed 4 MiB decoded
 byte budget and at most 1,000 entries; each specification allows at most 64
 component fields and 64 asset fields. Every projected name/type, including format,
 has a 256-byte UTF-8 budget and rejects C0/DEL/C1 controls for terminal safety.
+Each new metadata text/option label allows at most 16 KiB of decoded UTF-8;
+options allow at most 256 entries and 256 UTF-8 bytes per key. Wrong types,
+including non-string option values, reject the whole result. Options are retained
+when supplied for any field type; a client-side SELECT restriction is not imposed.
 These are CLI resource/output limits, not Nexus schema limits. A malformed,
 truncated or over-budget response fails with `nexus.decodeFailed`, exit 1 and no
 partial result or response-body dump. Format `get` shares these field/label limits.
 No automatic paging or retry is performed for discovery.
 
-Both reads use local ReadOnly permission. Nexus discovery/admin permissions are
-separate from repository create and publish rights: a denied blobstore list does
+The pinned detail resource returns 404 for both unknown formats and definitions
+without REST upload support; that response alone cannot distinguish them.
+The source has no explicit per-method permission annotation on these GETs;
+actual server admission and version/edition/plugin availability remain unqualified.
+
+Discovery commands use local ReadOnly permission. Server admission is separate
+from repository create and publish rights: a denied blobstore list does
 not prevent `repositories hosted raw create` with a known `--blob-store` name or
 `components upload` under their own permissions. Neither operation performs a
 discovery preflight. HTTP 401 means rejected authentication for that request;

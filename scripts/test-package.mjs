@@ -19,6 +19,10 @@ const temp = await mkdtemp(join(await realpath(tmpdir()), "nexus-package-"));
 const prefix = join(temp, "prefix");
 const nativeBytes = "offline native selection";
 const nativeDigest = createHash("sha256").update(nativeBytes).digest("hex");
+const uploadSpecification = {format:"raw",multipleUpload:true,
+  componentFields:[{name:"directory",type:"STRING",optional:false,description:"Repository path",group:"Component attributes",groupHelpText:"Directory scope",options:{root:"Root directory"}}],
+  assetFields:[{name:"filename",type:"STRING",optional:true,description:"Filename\nhelp",group:null,groupHelpText:null,options:null},
+    {name:"asset",type:"FILE",optional:false,description:null,group:null,groupHelpText:null,options:null}]};
 const installEnv = { ...process.env };
 for (const key of Object.keys(installEnv)) if (/token|^npm_config_|^node_options$|^node_path$/i.test(key)) delete installEnv[key];
 function run(file, args, options = {}) {
@@ -97,7 +101,8 @@ globalThis.fetch = async (input, init = {}) => {
   if (url.pathname.endsWith("/blobstores")) return url.pathname.includes("/denied/")
     ? new Response("synthetic private response", {status:403})
     : Response.json([{name:"existing",type:"File",softQuotaAttributes:{private:"omitted"}}]);
-  if (url.pathname.endsWith("/formats/upload-specs")) return Response.json([{format:"raw",multipleUpload:true,componentFields:[{name:"directory",type:"string",optional:false}],assetFields:[{name:"filename",type:"string",optional:true}]}]);
+  if (url.pathname.endsWith("/formats/upload-specs")) return Response.json([{...${JSON.stringify(uploadSpecification)},future:"SYNTHETIC_UNKNOWN_UPLOAD"}]);
+  if (url.pathname.endsWith("/formats/raw/upload-specs")) return Response.json({...${JSON.stringify(uploadSpecification)},future:"SYNTHETIC_UNKNOWN_UPLOAD"});
   if (url.pathname.endsWith("/components") && init.body instanceof FormData && init.body.has("raw.asset1")) {
     require("node:assert/strict").equal(await init.body.get("raw.asset1").text(),"synthetic raw");
     return new Response(null,{status:204});
@@ -159,6 +164,20 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   assert.doesNotMatch(repositoryRpc,/SYNTHETIC|PRIVATE/);
   console.log("Installed exact repository sizes and private upstream projections passed in human/JSON/RPC.");
 
+  const uploadCommands = [["formats","upload-specs","list"],["formats","upload-specs","get","raw"]];
+  for (const command of uploadCommands) {
+    const args = [...command,"--profile","public"];
+    const json = invoke([...args,"--json"]);
+    assert.deepEqual(JSON.parse(json),command[2] === "list" ? [uploadSpecification] : uploadSpecification);
+    const human = invoke(args);
+    for (const text of ["Repository path","Component attributes","Directory scope","Root directory","asset: required (FILE)"]) assert.ok(human.includes(text));
+    assert.match(human,/Filename\\u000ahelp/); assert.doesNotMatch(json+human,/SYNTHETIC_UNKNOWN_UPLOAD/);
+  }
+  const uploadRpc = run(executable,["--json-rpc"],{env,input:uploadCommands.map((command,i) => JSON.stringify({jsonrpc:"2.0",id:i+1,method:"cli.execute",params:{argv:[...command,"--profile","public"]}})).join("\n")+"\n"});
+  assert.deepEqual(uploadRpc.trim().split("\n").map(line => JSON.parse(line).result),[[uploadSpecification],uploadSpecification]);
+  assert.doesNotMatch(uploadRpc,/SYNTHETIC_UNKNOWN_UPLOAD/);
+  console.log("Installed complete upload-field metadata passed in human/JSON/RPC.");
+
   const quota = ["blobstores", "quota-status", "existing", "--profile", "public"];
   assert.deepEqual(JSON.parse(invoke([...quota, "--json"])), {blobStoreName:"existing",isViolation:false,message:"Quota available"});
   assert.match(invoke(quota), /Quota available/);
@@ -208,7 +227,7 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
 
   for (const [argv, expected, human] of [
     [["blobstores", "list"], [{name:"existing",type:"File"}], /existing/],
-    [["formats", "upload-specs", "list"], [{format:"raw",multipleUpload:true,componentFields:[{name:"directory",type:"string",optional:false}],assetFields:[{name:"filename",type:"string",optional:true}]}], /directory: required/],
+    [["formats", "upload-specs", "list"], [uploadSpecification], /directory: required/],
   ]) {
     assert.deepEqual(JSON.parse(invoke([...argv, "--profile", "public", "--json"])), expected);
     assert.match(invoke([...argv, "--profile", "public"]), human);
