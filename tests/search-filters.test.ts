@@ -252,7 +252,7 @@ for (const leaf of leaves) for (const phase of ["transport", "body"]) for (const
       // A transport may serialize query parameters without the enclosing URL, after an early copy.
       const form = url.searchParams.toString().replace(/%[A-F0-9]{2}/g, triplet => triplet.toLowerCase());
       const detail = spelling === "form" ? form : url.searchParams.get("docker.labels");
-      const native = Object.assign(new Error("synthetic socket failed " + detail), { code: "ECONNRESET" });
+      const native = Object.assign(new Error("synthetic socket failed (" + detail + "); context"), { code: "ECONNRESET" });
       native.stack = `${native.name}: ${native.message}\n    at syntheticSelectorTransport (selector-native.js:17:3)`;
       const early = diagnosticCause(native);
       if (phase === "transport") throw early;
@@ -262,6 +262,8 @@ for (const leaf of leaves) for (const phase of ["transport", "body"]) for (const
       "M9_PRIVATE_SELECTOR_PREFIX token=SYNTHETIC_VALUE",
       "M9_PRIVATE_SELECTOR_PREFIX api_key=SYNTHETIC_VALUE",
       "M9_PRIVATE_SELECTOR_PREFIX https://synthetic:private@host.example.test/p?token=SYNTHETIC_VALUE",
+      "M9_PRIVATE_SELECTOR_PREFIX https://synthetic:private@host.example.test",
+      "https://SYNTHETIC_PRIVATE_SELECTOR.example.test",
       "M9_PRIVATE_SELECTOR_PREFIX Basic SYNTHETIC_VALUE",
     ];
     for (const value of values) {
@@ -278,7 +280,7 @@ for (const leaf of leaves) for (const phase of ["transport", "body"]) for (const
           assert.equal(r.exitCode, 1); text = r.stdout + r.stderr;
           if (mode === "json") error = JSON.parse(r.stderr).error;
         }
-        assert.doesNotMatch(text, /SYNTHETIC|PRIVATE|%e9%9b%aa/);
+        assert.doesNotMatch(text, /SYNTHETIC|PRIVATE|private|%e9%9b%aa/);
         assert.match(text, /synthetic socket failed/);
         if (verbose) assert.match(text, /selector-native\.js:17:3/);
         if (mode !== "human") {
