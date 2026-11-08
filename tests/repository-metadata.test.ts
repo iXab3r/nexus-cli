@@ -189,6 +189,28 @@ for (const leaf of leaves) test(`Q4 ${leaf} exact response budget and complete l
   }
 });
 
+for (const leaf of leaves) test(`Q4 ${leaf} cancellation stops acquisition without a partial result`, async t => {
+  let controller = new AbortController();
+  const cli = await setup(t, leaf, () => { controller.abort(); return new HttpResponse(wire(leaf, JSON.stringify(base))); });
+  for (const before of [true, false]) {
+    controller = new AbortController(); if (before) controller.abort();
+    const r = await cli.fixture.run(cli.app, [...argv(leaf), "--json"], { signal: controller.signal });
+    assert.notEqual(r.exitCode, 0); assert.equal(r.stdout, ""); assert.doesNotMatch(r.stderr, /mutationUnknown|published/);
+  }
+  assert.equal(cli.requests.length, 1);
+});
+
+for (const leaf of leaves) test(`Q4 ${leaf} denied Basic profile does not require absent credentials`, async t => {
+  const f = await createCliFixture(t, { applicationId: "nexus-cli", profiles: [{ name: "lab", values: { url: origin, authMode: "basic" }, permissions: [] }] });
+  let calls = 0;
+  const app = f.createApplication(runtime => createCli({ ...createDefinition(), runtime: { ...runtime, fetch: async () => { calls++; throw new Error("No HTTP expected"); } } }));
+  for (const mode of ["json", "rpc"]) {
+    if (mode === "json") { const r = await f.run(app, [...argv(leaf), "--json"]); assert.equal(JSON.parse(r.stderr).error.code, "permission.denied"); }
+    else { const r: any = (await f.rpc(app, [argv(leaf)]))[0]; assert.equal(r.error.data.code, "permission.denied"); }
+  }
+  assert.equal(calls, 0);
+});
+
 test("Q4 RPC Basic and anonymous profiles do not cross endpoints or metadata", async t => {
   const seen: { url: string; auth: string | null }[] = [];
   const f = await createCliFixture(t, { applicationId: "nexus-cli", profiles: ["alpha", "beta", "public"].map(name => ({ name,
