@@ -1,9 +1,8 @@
 # nexus-cli — agent router
 
-The CLI for EyeAuras.Depot package hosting, built on EyeAuras.CliFactory and a bounded
-Nexus-compatible API. Depot is the product target; full Sonatype Nexus parity is not the goal.
-This file is the agent entry point. Read [Depot compatibility](docs/depot-compatibility.md)
-before selecting work. Durable contracts belong in `docs/`; delivery state lives in GitHub Issues.
+A standalone, general-purpose CLI for Sonatype Nexus Repository REST API, built on
+EyeAuras.CliFactory. This file is the entry point for coding agents. Durable product contracts
+belong in `docs/`; scope, acceptance and delivery state belong in GitHub Issues.
 
 ## Framework baseline
 
@@ -19,7 +18,7 @@ Read the relevant pinned contracts before changing their surfaces:
 - [CLI writer](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/roles/cli-writer.md) for every terminal-facing text
 
 These framework laws apply here. Links are required reading, not copied local implementations.
-Framework repository paths describe its ownership; this repository owns the Depot-facing CLI, not Depot server internals.
+Framework repository paths describe its ownership; this repository owns only the Nexus product.
 
 ## Story Delivery Lead — primary delivery role
 
@@ -29,16 +28,17 @@ For planning or delivering this product, adopt **Story Delivery Lead**. Read its
 The role owns the delivery process, not production code. Compose it with the integration author,
 GH issue dev, CLI writer and Reviewer as the work requires.
 
-Current coordination: [Depot #210](https://github.com/iXab3r/EyeAuras.Depot/issues/210).
-[Issue #1](https://github.com/iXab3r/nexus-cli/issues/1) and S01–S30 record the historical
-Nexus delivery baseline; they do not approve full parity or prove Depot compatibility.
+Current coordination: [Nexus CLI coverage #645](https://github.com/iXab3r/nexus-cli/issues/645).
+[Planning issue #1](https://github.com/iXab3r/nexus-cli/issues/1) records the original approvals.
+The product is independently defined by Nexus contracts and its selected stories. Contracts,
+permissions or implementation plans of another server do not determine this CLI's scope.
 Follow the canonical sequence:
 
 1. Generate an API inventory from a pinned official Nexus specification. Record version, edition,
    provenance and logical operation identities. Obtain owner approval before publishing the inventory.
-2. Prepare the bounded ordered story extension needed for Depot: actor/goal, proposed commands,
-   observable output/error/exit behavior, Given/When/Then, permissions and explicit scope limits.
-   The initial 20–25-story bootstrap is historical, not a quota for each extension.
+2. Prepare the bounded ordered Nexus story extension: actor/goal, concrete commands, observable
+   output/error/exit behavior, Given/When/Then acceptance, permission categories and scope limits.
+   The original 20–25-story bootstrap is not a quota for each extension.
    Obtain owner approval of the list and order.
 3. Link stories to required API operation issues using GitHub **blocked by** relationships.
    Resolve missing or unknown API needs before milestone assignment.
@@ -49,47 +49,28 @@ Follow the canonical sequence:
    same milestone, fix them and repeat with fresh reviewers. Close stories and covered operations
    only at the verified final milestone head; no accepted debt crosses a milestone without owner agreement.
 
-Inventory preserves the pinned source census; owner dispositions and Depot stories determine work.
-A `depot:candidate` operation is a contract reference, never implementation-ready by itself.
-Read [depot-scope.json](docs/api/depot-scope.json); excluded/deferred/outside-scope issues are
-NOT_PLANNED under this scope. Regeneration/publishing must preserve these dispositions, labels,
-state reasons and native relationships, without reopening or turning exclusions into completed coverage.
-Only an explicitly selected story with resolved API dependencies and an approved milestone may enter
-implementation. Use `type:api-group`, `type:api`, `type:story`, `type:review` and `api:<group>`
-as prescribed during approved planning setup; milestone defects use `bug`.
-Historical S01–S23 and their four milestones are recorded in [the delivery plan](docs/milestones.md).
-Historical S24 is outside the current Depot plan; S31 is superseded by the Depot direction.
-The [product contract](docs/product-contract.md), [stories](docs/stories.md) and
-[source contracts](docs/source-contracts.md) define acceptance. Generate the offline census
+Inventory measures coverage; stories determine implementation order. Inventory does not commit the
+product to every Nexus feature. Use `type:api-group`, `type:api`, `type:story`, `type:review` and
+`api:<group>` as prescribed during approved planning setup; milestone defects use `bug`.
+S01–S23 and four milestones are approved in [the delivery plan](docs/milestones.md).
+S24 is deferred. The [product contract](docs/product-contract.md), [stories](docs/stories.md)
+and [source contracts](docs/source-contracts.md) define acceptance. Generate the offline census
 with `python3 docs/api/generate_inventory.py`; inventory publication is authorized.
 The 3.96.3-01 source baseline is not a live compatibility claim.
 
 ## Product rules
 
-- **Depot package-hosting product.** Support selected Depot stories through explicitly agreed
-  Nexus-compatible contracts. Preserve immutable versions/manifests, durability and current independent
-  Read/Write/Delete. Full Nexus parity, extra formats/providers/backends and administrative machinery
-  require a new explicit scope decision; shared names do not prove equivalent semantics. All examples
-  and fixtures stay synthetic; real endpoints, identities, credentials and responses stay out of Git.
-- **Native-client publication.** Each format publishes through its native clients. Depot targets
-  20+ formats; keep this CLI on common resources and selected management workflows. Do not add
-  per-format pack/publish implementations, native-client process wrappers or universal publishing
-  commands. S34 and upload/upload-spec references are outside current CLI scope; see
-  [the owner decision](https://github.com/iXab3r/nexus-cli/issues/643). No new format is selected
-  merely by this long-term target.
-- **Historical compatibility evidence.** v0.1.0 and existing commands/tests form a Nexus baseline.
-  Preserve delivered functionality until a reviewed replacement migrates consumers; do not claim
-  Depot support, delete legacy commands or add fallback behavior from this planning update alone.
+- **Universal Nexus product.** Model Nexus repositories, components, assets and REST semantics.
+  No knowledge of specific deployments or alternative server implementations. All examples and
+  fixtures are synthetic; real addresses, identities, credentials and responses stay out of Git.
 - **Framework boundary.** CliFactory owns command declarations, help, rendering, JSON/JSON-RPC,
-  profiles, secrets and permission gates. nexus-cli owns agreed Depot/Nexus-compatible paths, DTOs,
-  authentication protocol integration, pagination, transfers and service error semantics. Do not copy or fork framework code.
+  profiles, secrets and permission gates. nexus-cli owns Nexus paths, DTOs, authentication protocol
+  integration, pagination, transfers and service error semantics. Do not copy or fork framework code.
 - **Framework changes.** Propose separately, with analysis of existing consumers and owner approval
   before creating framework issues or PRs outside the approved publishFile extension. Do not add speculative shared infrastructure here.
 - **Standalone.** No IPC package, daemon or MCP server. One command tree serves every output mode.
-- **Compatibility scope.** Declare the exact Depot revision and selected API contracts for each story.
-  The Nexus pin supplies reference shapes and historical evidence, not Depot feature entitlement.
-  Any retained Nexus support claim still needs explicit version/edition evidence; never infer support
-  from latest OpenAPI or assume every operation exists.
+- **Compatibility scope.** Choose supported Nexus versions and editions explicitly in planning;
+  do not infer support from a latest OpenAPI snapshot or assume all editions expose every operation.
 - **Tests.** Default tests are offline MSW mocks at native fetch, exercising the real command tree.
   No live service or container tests in CI. Real-service proof requires separate authorization and
   follows the framework's bounded local packaged-CLI practice. Sanitize fixtures before committing.

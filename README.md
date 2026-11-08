@@ -1,16 +1,6 @@
 # nexus-cli
 
-CLI for **EyeAuras.Depot package hosting**, built on `@eyeauras/cli-factory` **0.6.1**,
-using a deliberately bounded Nexus-compatible API. [Product scope](docs/depot-compatibility.md)
-defines the boundary and [Depot #210](https://github.com/iXab3r/EyeAuras.Depot/issues/210)
-coordinates server/CLI contract work. Full Nexus parity is outside the product goal.
-
-**Current evidence:** published v0.1.0 is the delivered Nexus baseline. The commands and
-examples below describe that baseline; they are not a claim of qualified Depot support.
-Depot connection, package read/download and whole-version deletion are the
-[next contract-blocked story drafts](docs/stories.md#current-depot-drafts). Publication belongs
-to each format's native clients. Depot targets 20+ formats while this CLI stays on common
-resources and management workflows. Historical Maven commands do not select Maven for Depot.
+Standalone Nexus Repository CLI built on `@eyeauras/cli-factory` **0.6.1**.
 
 M1 provides profile configuration, Basic or explicit anonymous access, local
 credential status/logout, service availability, and repository list/detail.

@@ -1,17 +1,15 @@
-# Depot CLI product contract
+# Nexus CLI product contract
 
-## Current owner direction — 2026-11-08
+## Standalone product boundary — owner clarification, 2026-11-08
 
-The CLI targets EyeAuras.Depot package hosting over bounded Nexus compatibility.
-[Depot compatibility](depot-compatibility.md) and its pinned per-operation disposition ledger
-control new task selection. They supersede the earlier universal-Nexus/no-Depot direction.
-Historical approvals and v0.1.0 evidence below remain records of Nexus delivery; they do not
-approve every operation for Depot or establish server compatibility. No runtime/auth behavior
-is changed by this scope decision. Publication belongs to each format's native clients;
-Depot's 20+ format target does not expand this CLI into per-format publishers. S34 is
-superseded by [owner decision #643](https://github.com/iXab3r/nexus-cli/issues/643).
-
-## Historical Nexus baseline and approvals
+`nexus-cli` targets Sonatype Nexus Repository. Select work from Nexus version/edition contracts
+and user stories, independently of other server implementations. Their resource models, native
+protocols, permission rules and delivery plans are not this CLI's requirements or dependencies.
+Current coordination is [#645](https://github.com/iXab3r/nexus-cli/issues/645).
+The pinned 442-operation census is a reference denominator, not a blanket implementation promise.
+Historical issue closures and applicability labels must be re-evaluated against the selected Nexus
+story before being used as current scope or delivered operation coverage. Existing commands and
+their accepted evidence remain intact; this clarification changes no runtime behavior.
 
 [Owner approval](https://github.com/iXab3r/nexus-cli/issues/1#issuecomment-6690348756) authorizes S01–S23 across four milestones. S24 is deferred. The subsequent release task authorizes TeamCity configuration and the first staged npm release, with review, configuration application, merge and publication retained by the delivery lead. See [release setup](release.md). Live Nexus access remains separately scoped.
 
@@ -21,7 +19,7 @@ Official documentation https://help.sonatype.com/en/api-reference.html links htt
 
 Run `python3 docs/api/generate_inventory.py` from repository root. Python standard library only, offline, hash assertion, deterministic ordering; writes inventory.json and inventory.md beside script. Counts: **442 disambiguated operation identities (439 original operationId strings), 442 HTTP method/path pairs, 297 path entries**. Repeated IDs are distinct method/path identities; different IDs are deliberately not merged on guessed equivalence. All method/path aliases, tags, summaries and response codes retained. Primary sorted tag supplies additive group counts. Inventory is a coverage census, never a parity promise; Publication is authorized by the approval linked below.
 
-## Historical approved Nexus product scope
+## Approved product scope
 
 Initial scope is a standalone CLI for self-hosted Nexus 3, Basic username/password via custom AuthDefinition and explicit anonymous mode, raw/Maven REST publication, bounded discovery/download and raw hosted inspection/create. Keep CliFactory v0.6.1 pinned. Source 3.96.3-01 is the reproducible offline fixture baseline, NOT a recommendation to install that patch. Recommend a currently maintained self-hosted Community release for separately authorized compatibility proof; exact deployment patch is an owner selection with API delta review before claiming support. Pro/token-pair entitlement and Cloud remain outside the first support claim.
 
