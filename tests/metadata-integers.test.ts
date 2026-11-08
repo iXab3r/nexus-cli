@@ -147,3 +147,17 @@ test("Q2 unrelated deeply nested metadata preserves the baseline JSON contract",
     assert.equal(child, 1);
   }
 });
+
+test("Q2 token provenance honors escaped keys, opaque strings and last duplicate containers", async t => {
+  const route = routes[1];
+  let response = '{"id":"component","assets":[{"id":"old","fileSize":9223372036854775807}],"assets":[{"id":"new","fi\\u006ceSize":9007199254740993,"future":{"fileSize":1.25,"text":"brace } comma , quote \\\" fileSize"}}]}';
+  const cli = await setup(t, route, () => response);
+  const argv = [...route.argv, "--profile", "lab"];
+  const value: any = await cli.fixture.json(cli.app, argv);
+  assert.equal(value.assets[0].fileSize, "9007199254740993");
+  assert.equal(value.assets[0].future.fileSize, 1.25);
+  response = '{"id":"component","assets":[{"id":"old","fileSize":9223372036854775807}],"assets":[{"id":"new"}]}';
+  assert.deepEqual((await cli.fixture.json(cli.app, argv) as any).assets, [{ id: "new" }]);
+  response = '{"id":"component","assets":[{"id":"new","fileSize":null,"fileSize":1}]}';
+  assert.equal((await cli.fixture.json(cli.app, argv) as any).assets[0].fileSize, 1);
+});

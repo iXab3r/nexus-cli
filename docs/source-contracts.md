@@ -8,10 +8,11 @@ The pinned `AssetXO.fileSize` is `integer/int64`. Its full signed range cannot
 be represented exactly by a JavaScript number. The approved
 [#645 policy](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6725968859)
 uses numbers in the safe-integer range and exact decimal strings outside it.
-Nexus metadata decoding retains the original JSON token with Node 22's reviver
-source context, then validates/normalizes only `fileSize` on the known AssetXO
-positions (direct records, pages and nested ComponentXO assets). Unknown fields
-with that spelling keep their existing representation.
+Nexus metadata decoding uses native JSON parsing plus an iterative token scan,
+then validates/normalizes only `fileSize` on the known AssetXO positions (direct
+records, pages and nested ComponentXO assets). Unrelated subtrees are skipped
+with a depth counter; they do not enter a recursive reviver. Unknown fields with
+that spelling keep their existing representation.
 
 Valid decimal/exponent JSON spellings of integral int64 values have the same
 value. Nonintegral, wrong-type or out-of-range sizes fail without a rounded
