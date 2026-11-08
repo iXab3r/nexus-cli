@@ -50,3 +50,17 @@ The selected pool contains eight identities. Full-contract promotion requires ea
 milestone's final acceptance; a declared route or an old closed issue is insufficient.
 Keep the existing RED→GREEN and independent-review gates. This approval grants no
 live access, npm publication or TeamCity mutation.
+
+## Approved reported repository metadata extension
+
+[M10](https://github.com/iXab3r/nexus-cli/milestone/10) contains one story,
+[Q4 #669](https://github.com/iXab3r/nexus-cli/issues/669), approved in
+[this receipt](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6728190441).
+It adds exact reported int64 size and safe source-known upstream URL/attribute
+projections to the existing repository list/get commands. The story is blocked by
+API #144/#145 through native tracker relationships. RED acceptance, GREEN/docs,
+installed-package proof and fresh independent final-head review govern delivery.
+The broader attributes map remains unimplemented: this outcome enhances two
+reachable operations without promoting either to full-contract coverage. The
+12 covered + 8 partial + 422 missing census and reachability of 20 stay unchanged.
+No new publication or live-service authorization is included.

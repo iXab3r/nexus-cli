@@ -64,6 +64,11 @@ const existingFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const url = new URL(input);
   require("node:fs").appendFileSync(${JSON.stringify(discoveryRequests)}, (init.method ?? "GET") + " " + url.pathname + url.search + "\\n");
+  if (url.pathname === "/context/service/rest/v1/repositories" || url.pathname === "/context/service/rest/v1/repositories/maven-proxy") {
+    require("node:assert/strict").equal(init.method ?? "GET", "GET");
+    const repository = '{"name":"maven-proxy","format":"maven2","type":"proxy","online":false,"url":"https://SYNTHETIC_USER:SYNTHETIC_PASSWORD@nexus.example.test/context/repository/maven-proxy?token=SYNTHETIC_QUERY#SYNTHETIC_HASH","size":9007199254740993,"attributes":{"proxy":{"remoteUrl":"https://SYNTHETIC_USER:SYNTHETIC_PASSWORD@upstream.example.test/maven2?token=SYNTHETIC_QUERY#SYNTHETIC_HASH","password":"SYNTHETIC_ATTRIBUTE"},"internal":{"secret":"SYNTHETIC_CONFIG"}}}';
+    return new Response(url.pathname.endsWith("/repositories") ? '[' + repository + ']' : repository);
+  }
   if (url.searchParams.get("q") === "SYNTHETIC PRIVATE SELECTOR") {
     throw Object.assign(new Error("synthetic socket failed " + url.searchParams), {code:"ECONNRESET"});
   }
@@ -135,6 +140,24 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   assert.match(invoke(["profile", "configure", "public", "--url", "https://nexus.example.test:443/context", "--auth-mode", "anonymous", "--json"]), /anonymousConfigured/);
   assert.match(invoke(["profile", "show", "public", "--json"]), /:443\/context/);
   assert.equal(JSON.parse(invoke(["assets", "list", "--repository", "releases", "--profile", "public", "--json"])).items[0].id, "offline-asset");
+
+  const expectedRepository = {name:"maven-proxy",format:"maven2",type:"proxy",online:false,
+    url:"https://nexus.example.test/context/repository/maven-proxy",size:"9007199254740993",
+    attributes:{proxy:{remoteUrl:"https://upstream.example.test/maven2"}}};
+  const repositoryCommands = [["repositories","list"],["repositories","get","maven-proxy"]];
+  for (const command of repositoryCommands) {
+    const args = [...command,"--profile","public"];
+    const json = invoke([...args,"--json"]);
+    assert.deepEqual(JSON.parse(json),command[1] === "list" ? [expectedRepository] : expectedRepository);
+    const human = invoke(args);
+    assert.match(human,/Reported size \(B\)/); assert.match(human,/9007199254740993/); assert.match(human,/upstream\.example\.test/);
+    assert.doesNotMatch(human+json,/SYNTHETIC|PRIVATE/);
+  }
+  const repositoryRpc = run(executable,["--json-rpc"],{env,input:repositoryCommands.map((command,i) => JSON.stringify({jsonrpc:"2.0",id:i+1,method:"cli.execute",params:{argv:[...command,"--profile","public"]}})).join("\n")+"\n"});
+  const repositoryReplies = repositoryRpc.trim().split("\n").map(line => JSON.parse(line));
+  assert.deepEqual(repositoryReplies.map(r => r.result),[[expectedRepository],expectedRepository]);
+  assert.doesNotMatch(repositoryRpc,/SYNTHETIC|PRIVATE/);
+  console.log("Installed exact repository sizes and private upstream projections passed in human/JSON/RPC.");
 
   const quota = ["blobstores", "quota-status", "existing", "--profile", "public"];
   assert.deepEqual(JSON.parse(invoke([...quota, "--json"])), {blobStoreName:"existing",isViolation:false,message:"Quota available"});

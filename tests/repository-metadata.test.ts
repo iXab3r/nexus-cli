@@ -195,7 +195,7 @@ for (const leaf of leaves) test(`Q4 ${leaf} cancellation stops acquisition witho
   for (const before of [true, false]) {
     controller = new AbortController(); if (before) controller.abort();
     const r = await cli.fixture.run(cli.app, [...argv(leaf), "--json"], { signal: controller.signal });
-    assert.notEqual(r.exitCode, 0); assert.equal(r.stdout, ""); assert.doesNotMatch(r.stderr, /mutationUnknown|published/);
+    assert.equal(r.exitCode, 130); assert.equal(r.stdout, ""); assert.doesNotMatch(r.stderr, /mutationUnknown|published/);
   }
   assert.equal(cli.requests.length, 1);
 });
@@ -217,13 +217,13 @@ test("Q4 RPC Basic and anonymous profiles do not cross endpoints or metadata", a
     values: { url: `https://${name}.example.test/context`, authMode: name === "public" ? "anonymous" : "basic" }, permissions: ["ReadOnly"],
     ...(name === "public" ? {} : { secrets: { credentials: JSON.stringify({ username: name, password: "synthetic-" + name }) } }),
   })) });
-  const app = f.createApplication(runtime => createCli({ ...createDefinition(), runtime }));
-  const server = setupServer(http.get("*", ({ request }) => {
+  const server = setupServer(http.get(/.*/, ({ request }) => {
     seen.push({ url: request.url, auth: request.headers.get("authorization") });
     return new HttpResponse(record("9007199254740993"));
   })); server.listen({ onUnhandledRequest: "error" }); t.after(() => server.close());
+  const app = f.createApplication(runtime => createCli({ ...createDefinition(), runtime }));
   const replies: any[] = await f.rpc(app, ["alpha", "beta", "public", "alpha"].map(name => ["repositories", "get", "a/b?雪%", "--profile", name]));
-  assert.ok(replies.every(r => r.result?.size === "9007199254740993"));
+  assert.ok(replies.every(r => r.result?.size === "9007199254740993"), JSON.stringify(replies.map(r => ({ code: r.error?.data.code, size: r.result?.size }))));
   assert.deepEqual(seen.map(r => r.auth), ["alpha", "beta", null, "alpha"].map(n => n === null ? null : "Basic " + Buffer.from(n + ":synthetic-" + n).toString("base64")));
   assert.deepEqual(seen.map(r => r.url), ["alpha", "beta", "public", "alpha"].map(n => `https://${n}.example.test/context/service/rest/v1/repositories/a%2Fb%3F%E9%9B%AA%25`));
   const before = seen.length;
