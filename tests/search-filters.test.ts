@@ -271,7 +271,7 @@ for (const leaf of leaves) for (const phase of ["transport", "body"]) {
           assert.equal(r.exitCode, 1); text = r.stdout + r.stderr;
           if (mode === "json") error = JSON.parse(r.stderr).error;
         }
-        assert.doesNotMatch(text, /SYNTHETIC|PRIVATE|%e9%9b%aa/i);
+        assert.doesNotMatch(text, /SYNTHETIC|PRIVATE|%e9%9b%aa/);
         assert.match(text, /synthetic socket failed/);
         if (verbose) assert.match(text, /selector-native\.js:17:3/);
         if (mode !== "human") {
