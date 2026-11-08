@@ -1,3 +1,5 @@
+import { diagnosticCause } from "@eyeauras/cli-factory";
+
 /** Only conservative, bounded repository labels enter diagnostics; never print paths or queries. */
 export function operationContext(operation: string, repository?: string): string {
   return operation + (repository === undefined ? '' : /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(repository)
@@ -21,7 +23,26 @@ export function resourceRedactions(url: string, ...resources: (string | undefine
     values.add(value);
     try {
       // Core may already have replaced URL queries before the integration catches a cause.
-      const pathname = new URL(value).pathname;
+      const parsed = new URL(value);
+      const pathname = parsed.pathname;
+      for (const [key, selector] of parsed.searchParams) {
+        if (selector && !["sort", "direction", "timeout"].includes(key)) {
+          // Form serialization uses '+' for spaces and escapes more punctuation than URI encoding.
+          const form = new URLSearchParams([["", selector]]).toString().slice(1);
+          // Early generic sanitization can change one part of a decoded value. Keep its
+          // whitespace-delimited parts private independently of those transformations.
+          for (const spelling of new Set([selector, ...selector.split(/\s+/).filter(Boolean), encodeURIComponent(selector), form])) {
+            values.add(spelling);
+            // A lower boundary may have applied Core's generic URL/credential redaction first.
+            const sanitized = diagnosticCause(new Error(spelling)).message;
+            values.add(sanitized);
+            // WHATWG adds '/' to a bare authority; adjacent diagnostic punctuation may
+            // become part of that authority before Core normalizes it. Match the stable
+            // prefix too, using Core's result rather than reproducing its URL policy.
+            if (sanitized.endsWith('/')) values.add(sanitized.slice(0, -1));
+          }
+        }
+      }
       if (pathname !== '/') {
         values.add(pathname);
         values.add(decodeURIComponent(pathname));

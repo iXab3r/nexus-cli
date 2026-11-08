@@ -119,10 +119,42 @@ sends an empty filter. Maven base version maps to `maven.baseVersion`; it is a
 string, such as `1.2-SNAPSHOT`, distinct from an explicit `--artifact-version`.
 
 `--sort` accepts `group`, `name`, `version`, or `repository`; `--direction` accepts
-`asc` or `desc` and requires `--sort` as a CLI policy. No direction is added when
-omitted. `--prerelease` requires lowercase `true` or `false`, transmitted as a
-lowercase string matching the pinned schema. These filters persist across pages
+`asc` or `desc`. Direction can be supplied without sort, matching the pinned API;
+no direction or sorting is added when omitted. The convenience `--prerelease`
+flag accepts lowercase `true` or `false`; the native parameter is a string. These filters persist across pages
 and must be supplied again when resuming with a continuation token.
+
+The three search commands also accept repeatable `--filter <json>` objects with
+exact native `name` and string `value` fields, plus `--timeout <seconds>`:
+
+```sh
+nexus-cli search assets --filter '{"name":"repositoryName","value":"releases"}' --filter '{"name":"sha256","value":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
+nexus-cli search components --filter '{"name":"raw.name","value":"demo.bin"}' --timeout 30
+```
+
+This exposes all 80/80/79 declared query dimensions of the pinned specification,
+including digest, update and format selectors. Generic values preserve empty
+strings, whitespace and Unicode. `sort`, `direction`, `timeout` and
+`continuationToken` use their dedicated options; download has no continuation
+option. The native `version` key maps to the same parameter as
+`--artifact-version`; root `--version` still reports this executable's version.
+The boolean prerelease flag remains a convenience; a native `prerelease` string
+can be supplied through `--filter`.
+
+Each wire key has one value in this CLI. Repeated dedicated query flags,
+duplicate filters or a filter conflicting with a dedicated flag fail before
+HTTP; unknown names and descriptor fields are
+usage errors. The pinned OpenAPI declares scalar parameters; the server source's
+additional repeated-format OR behavior is outside this CLI contract. Timeout
+accepts the signed int32 decimal range; it is forwarded as a server parameter,
+not a client deadline. The inspected source does not apply it as a search deadline,
+and an unsupported format/plugin/version can reject a request without fallback.
+Core JSON/int32 parser failures exit 1; Nexus descriptor/conflict rules exit 2.
+
+For `search download`, a native `sha256` filter selects remotely while the existing
+`--sha256` checks downloaded bytes locally. Filters and timeout persist across
+pages and must be supplied again when resuming. Native selectors do not add
+OpenAPI operations or a live edition compatibility claim.
 
 Without sorting, search download retains Nexus's unique-match behavior: ambiguous
 matches fail without creating a file. An explicit sort requests deliberate server

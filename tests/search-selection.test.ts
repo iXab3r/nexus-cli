@@ -102,7 +102,7 @@ for (const kind of Object.keys(routes) as (keyof typeof routes)[]) {
     assert.deepEqual(Object.fromEntries(requests[0].searchParams), { sort, direction: "asc", prerelease: "true" });
   });
 
-  for (const invalid of [["--direction", "desc"], ["--sort", "latest"], ["--sort", "Version"], ["--sort", "version", "--direction", "down"], ["--prerelease", "TRUE"], ["--prerelease", "1"], ["--prerelease", ""], ["--sort"], ["--direction"], ["--prerelease"], ["--maven-base-version"]]) {
+  for (const invalid of [["--sort", "latest"], ["--sort", "Version"], ["--sort", "version", "--direction", "down"], ["--prerelease", "TRUE"], ["--prerelease", "1"], ["--prerelease", ""], ["--sort"], ["--direction"], ["--prerelease"], ["--maven-base-version"]]) {
     test(`S29 ${kind} rejects ${JSON.stringify(invalid)} before HTTP in CLI and RPC`, async t => {
       const { fixture: f, app: a, dir, requests } = await setup(t, () => new HttpResponse(bytes));
       const argv = ["search", kind, "--profile", "lab", ...invalid];
