@@ -1,4 +1,12 @@
-# Approved delivery milestones
+# Current Depot planning
+
+[Depot compatibility](depot-compatibility.md) is the current product scope. M1–M6 below
+record Nexus delivery. New Depot story drafts have no implementation milestone until exact
+contracts/dependencies and the owner-approved delivery plan are resolved under
+[Depot #210](https://github.com/iXab3r/EyeAuras.Depot/issues/210). S24 and S31 are outside
+the current Depot plan; historical deferred wording below is not an active work instruction.
+
+## Historical delivery milestones
 
 Authority: [owner approval](https://github.com/iXab3r/nexus-cli/issues/1#issuecomment-6690348756).
 
