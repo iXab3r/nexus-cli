@@ -38,11 +38,29 @@ variable or password command-line flag is supported.
 Read service leaves use the profile's ReadOnly gate; mutations require Update. Repository lists show only server
 visibility, including an empty success; they are not full installation inventories.
 Summary fields are name, format, type, URL and online (`null` when the server omits
-online). A single response is limited to 4 MiB and lists to 1,000 entries.
+online), plus optional reported `size` and a source-known `attributes` projection.
+A single response is limited to 4 MiB and lists to 1,000 entries.
 Repository names are encoded as one path segment. Availability uses both
 `/service/rest/v1/status` and `/service/rest/v1/status/writable`; failure including
 503 exits 1 and never proves authentication. All service errors use stderr in
 ordinary CLI execution and RPC error envelopes, with no response body dump.
+
+Repository `size` follows the exact signed-int64 policy: a number in the safe-integer
+range and a decimal string outside it. Omission stays omitted; zero is the value
+reported by Nexus and does not establish that a repository is empty or metrics are
+available. The pinned list producer can report zero without metrics; detail may
+omit size. Human output displays exact **Reported size (B)** rather than rounded units.
+Invalid present sizes or malformed metadata reject the whole list/detail result.
+
+Repository URL and the proxy `attributes.proxy.remoteUrl` are sanitized HTTP(S)
+projections: userinfo, query and fragment are removed; invalid/non-HTTP URLs become
+null. Native empty/null upstream values are retained. Human **Upstream URL** shows
+`not reported`, `(empty)` or `not displayable` for those distinct cases; null does not
+prove that no upstream is configured. Other attribute groups/keys remain private;
+non-proxy attributes project as an empty object. An omitted attributes field stays
+omitted. This projection does not detect secrets hidden in arbitrary URL path text
+or change saved profile URLs. Both repository operations remain **partial** in the
+full-contract inventory because the broader OpenAPI attributes map is not exposed.
 
 Core parser failures, including omitted required options, use `usage` and exit 1.
 Nexus domain validation, such as an invalid selector or unequal delete

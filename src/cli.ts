@@ -17,6 +17,20 @@ const metadata = JSON.parse(
   readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
 ) as { version: string };
 const fields = ["name", "format", "type", "url", "online"] as const;
+/** Human views escape terminal controls without changing admitted machine strings. */
+const repositoryText = (value: string) => value.replace(/[\x00-\x1f\x7f-\x9f]/g, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+const repositoryFields = [
+  ...fields.map(k => ({ label: k, value: (r: Repository) => {
+    const value = r[k];
+    if (typeof value === "string") return repositoryText(value);
+    return value === null ? (k === "url" ? "not displayable" : "not reported") : value;
+  } })),
+  { label: "Reported size (B)", value: (r: Repository) => r.size === undefined ? "not reported" : String(r.size) },
+  { label: "Upstream URL", value: (r: Repository) => {
+    const url = r.attributes?.proxy?.remoteUrl;
+    return url === undefined ? "not reported" : url === null ? "not displayable" : url === "" ? "(empty)" : repositoryText(url);
+  } },
+];
 /** One command tree for terminal, JSON and persistent RPC callers. */
 export function createDefinition(): CliDefinition {
   return {
@@ -85,7 +99,7 @@ export function createDefinition(): CliDefinition {
           {
             permission: Permission.ReadOnly,
             view: tableView<Repository>({
-              columns: fields.map((k) => ({ header: k, value: (r) => r[k] })),
+              columns: repositoryFields.map(({ label, value }) => ({ header: label, value })),
               empty: "No visible repositories.",
             }),
           },
@@ -97,7 +111,7 @@ export function createDefinition(): CliDefinition {
           {
             permission: Permission.ReadOnly,
             view: recordView<Repository>({
-              fields: fields.map((k) => ({ label: k, value: (r) => r[k] })),
+              fields: repositoryFields,
             }),
           },
         ),

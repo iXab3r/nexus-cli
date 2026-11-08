@@ -9,8 +9,9 @@ be represented exactly by a JavaScript number. The approved
 [#645 policy](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6725968859)
 uses numbers in the safe-integer range and exact decimal strings outside it.
 Nexus metadata decoding uses native JSON parsing plus an iterative token scan,
-then validates/normalizes only `fileSize` on the known AssetXO positions (direct
-records, pages and nested ComponentXO assets). Unrelated subtrees are skipped
+then validates/normalizes `fileSize` on the known AssetXO positions (direct
+records, pages and nested ComponentXO assets) and `size` on direct/list RepositoryXO
+records. Unrelated subtrees are skipped
 with a depth counter; they do not enter a recursive reviver. Unknown fields with
 that spelling keep their existing representation.
 
@@ -19,6 +20,31 @@ value. Nonintegral, wrong-type or out-of-range sizes fail without a rounded
 result; body and page budgets/checkpoints still apply. Magnitude is checked
 before zero padding or bounded BigInt conversion. This is a Nexus DTO policy,
 not a generic Core JSON parser, download byte-accounting change or live proof.
+
+## Reported repository metadata (Q4)
+
+The public `repository/rest/api/RepositoryXO.java`, `RepositoriesResource.java` and
+`RepositoryManagerRESTAdapterImpl.java` in the pinned source define the two general
+repository GET responses; the unrelated internal RepositoryXO is not their DTO.
+The public size is a nullable Java Long with NON_NULL serialization. Detail obtains
+an optional metrics value and omits size when unavailable. List emits zero when its
+optional metrics service or a repository's metrics row is absent. Preserve reported
+zero and omission independently, without inferring measurement availability.
+
+Both producers return only `proxy.remoteUrl` for proxy attributes and an empty map
+otherwise. Detail reads a nullable String; list reads an object with an empty-string
+default. The selected projection validates group objects and string/null remoteUrl,
+retains empty/null/omitted values, and admits only HTTP(S) URLs after removing
+userinfo/query/fragment; invalid/non-HTTP strings become null for display. Apply
+the same URL projection to RepositoryXO.url. Other attributes/top-level unknown
+fields are omitted. This is a private-field output projection, not complete
+support for OpenAPI's arbitrary attributes map, so both operation rows stay partial.
+No universal detection of sensitive URL path text or live compatibility is claimed.
+
+The resource uses RequiresUser (known subject). List filters through
+userCanBrowseRepositories; detail permits repository read/browse through the
+permission checker, including applicable content-selector evaluation. Local
+ReadOnly, Basic/anonymous modes and existing response/item budgets remain unchanged.
 
 ## Hosted GET and PUT
 

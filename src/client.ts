@@ -1,4 +1,5 @@
 import { readContext, readResource, resourceRedactions, statusMessage } from "./diagnostics.js";
+import { parseMetadata } from "./metadata.js";
 import {
   CliError,
   HttpError,
@@ -71,26 +72,56 @@ export interface Repository {
   name: string;
   format: string;
   type: string;
-  url: string;
+  url: string | null;
   online: boolean | null;
+  size?: number | string;
+  attributes?: { proxy?: { remoteUrl?: string | null } };
+}
+/** Nexus URL results expose a location, excluding credential-bearing URL components. */
+function repositoryUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    url.username = ""; url.password = ""; url.search = ""; url.hash = "";
+    return url.href;
+  } catch { return null; }
+}
+function invalidRepository(): never {
+  throw new CliError("Nexus repository response is invalid.", { code: "nexus.decodeFailed" });
 }
 function repository(value: unknown): Repository {
   const r = value as Record<string, unknown>;
   if (
     !r ||
     typeof r !== "object" ||
+    Array.isArray(r) ||
     ["name", "format", "type", "url"].some((k) => typeof r[k] !== "string") ||
     (r.online !== undefined && typeof r.online !== "boolean")
   )
-    throw new CliError("Nexus repository response is invalid.", {
-      code: "nexus.decodeFailed",
-    });
+    invalidRepository();
+  let attributes: Repository["attributes"];
+  if (Object.hasOwn(r, "attributes")) {
+    const groups = r.attributes;
+    if (!groups || typeof groups !== "object" || Array.isArray(groups) ||
+      Object.values(groups).some(group => !group || typeof group !== "object" || Array.isArray(group))) invalidRepository();
+    attributes = {};
+    if (r.type === "proxy" && Object.hasOwn(groups, "proxy")) {
+      const proxy = (groups as Record<string, Record<string, unknown>>).proxy;
+      attributes.proxy = {};
+      if (Object.hasOwn(proxy, "remoteUrl")) {
+        if (proxy.remoteUrl !== null && typeof proxy.remoteUrl !== "string") invalidRepository();
+        attributes.proxy.remoteUrl = proxy.remoteUrl === null || proxy.remoteUrl === "" ? proxy.remoteUrl : repositoryUrl(proxy.remoteUrl);
+      }
+    }
+  }
   return {
     name: r.name as string,
     format: r.format as string,
     type: r.type as string,
-    url: r.url as string,
+    url: repositoryUrl(r.url as string),
     online: typeof r.online === "boolean" ? r.online : null,
+    ...(Object.hasOwn(r, "size") ? { size: r.size as number | string } : {}),
+    ...(attributes === undefined ? {} : { attributes }),
   };
 }
 export async function repositories(
@@ -101,13 +132,13 @@ export async function repositories(
   const response = await checked(context, path);
   let data: unknown;
   try {
-    data = JSON.parse(
+    data = parseMetadata(
       Buffer.from(
         await readResponseBody(response, {
           maxBytes: 4 * 1024 * 1024,
           signal: context.signal,
         }),
-      ).toString("utf8"),
+      ).toString("utf8"), path,
     );
   } catch (cause) {
     throw new CliError(readContext("repositories" + (name === undefined ? "" : "/" + pathSegment(name))) + ": could not decode response.", {
