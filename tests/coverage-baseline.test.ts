@@ -9,7 +9,7 @@ const asset = {
   downloadUrl: "https://nexus.example.test/repository/releases/demo.txt",
   checksum: { sha256: "a".repeat(64) }, contentType: "text/plain",
   lastModified: "2026-01-01T00:00:00Z", lastDownloaded: null,
-  uploader: "synthetic-user", uploaderIp: "192.0.2.1", fileSize: 4,
+  uploader: "synthetic-user", uploaderIp: "192.0.2.1", fileSize: Number.MAX_SAFE_INTEGER,
   blobCreated: "2026-01-01T00:00:00Z", blobStoreName: "synthetic-store",
   blobUpdated: "2026-01-01T00:00:00Z", blobRef: "synthetic-reference",
   lastVerified: null, registryUrl: "https://registry.example.test",
@@ -23,10 +23,11 @@ async function configure(f: Awaited<ReturnType<typeof offlineCli>>["fixture"], a
   assert.equal((await f.run(a, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"])).exitCode, 0);
 }
 
-// Qualify the existing routes against fields absent from the original small fixtures.
+// Qualify field retention at the representable integer boundary. This does not
+// establish lossless decoding for the complete OpenAPI int64 range.
 // This is audit evidence for shipped commands, not a new story or new REST operation.
 for (const kind of ["assets", "components"] as const) for (const detail of [false, true]) {
-  test(`Coverage baseline ${kind} ${detail ? "detail" : "page"} retains the complete pinned DTO`, async t => {
+  test(`Coverage baseline ${kind} ${detail ? "detail" : "page"} retains pinned DTO fields at safe integer sizes`, async t => {
     const expected = kind === "assets" ? asset : component;
     let calls = 0;
     const route = kind + (detail ? "/opaque%2B%2F%3D" : "");
