@@ -41,8 +41,8 @@ try {
     source = join(temp, packed.filename);
   }
   const members = run("tar", ["-tzf", source]).trim().split("\n");
-  assert.deepEqual(members.sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"].map(path => "package/" + path).sort());
-  console.log("Archive allowlist passed (14 files). Installing dependencies; this phase may use npm network access.");
+  assert.deepEqual(members.sort(), ["README.md", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/metadata.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"].map(path => "package/" + path).sort());
+  console.log("Archive allowlist passed (15 files). Installing dependencies; this phase may use npm network access.");
   npm(["install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", source]);
   const installed = join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@eyeauras", "nexus-cli");
   const installedMetadata = JSON.parse(await readFile(join(installed, "package.json"), "utf8"));
@@ -67,6 +67,8 @@ globalThis.fetch = async (input, init = {}) => {
     const violated = url.pathname.includes("/violating/");
     return Response.json({blobStoreName:violated ? "violating" : "existing",isViolation:violated,message:violated ? "Quota exceeded" : "Quota available"});
   }
+  if (url.pathname.endsWith("/assets/exact")) return new Response('{"id":"exact","fileSize":9223372036854775807}');
+  if (url.pathname.endsWith("/components/exact")) return new Response('{"id":"component","assets":[{"id":"exact","fileSize":-9223372036854775808}]}');
   if (url.pathname.endsWith("/blobstores")) return url.pathname.includes("/denied/")
     ? new Response("synthetic private response", {status:403})
     : Response.json([{name:"existing",type:"File",softQuotaAttributes:{private:"omitted"}}]);
@@ -125,6 +127,12 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   const quotaRpc = run(executable,["--json-rpc"],{env,input:JSON.stringify({jsonrpc:"2.0",id:1,method:"cli.execute",params:{argv:violation}})+"\n"});
   assert.equal(JSON.parse(quotaRpc).error.data.result.isViolation,true);
   console.log("Installed quota status success and failure channels passed offline.");
+  const exactSize = ["assets", "get", "exact", "--profile", "public"];
+  assert.equal(JSON.parse(invoke([...exactSize,"--json"])).fileSize,"9223372036854775807");
+  assert.match(invoke(exactSize),/9223372036854775807/);
+  const exactRpc = run(executable,["--json-rpc"],{env,input:JSON.stringify({jsonrpc:"2.0",id:1,method:"cli.execute",params:{argv:["components","get","exact","--profile","public"]}})+"\n"});
+  assert.equal(JSON.parse(exactRpc).result.assets[0].fileSize,"-9223372036854775808");
+  console.log("Installed exact int64 metadata passed in human/JSON/RPC.");
 
   for (const [argv, expected, human] of [
     [["blobstores", "list"], [{name:"existing",type:"File"}], /existing/],

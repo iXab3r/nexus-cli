@@ -71,7 +71,7 @@ for (const [token, expected] of [
 for (const route of routes) test(`Q2 ${route.path} rejects invalid sizes without false results`, async t => {
   let token = "null";
   const cli = await setup(t, route, () => responseWire(token, route));
-  for (const value of ["null", '"9007199254740993"', "true", "{}", "1.25", "1e-99999999999999999999",
+  for (const value of ["null", '"9007199254740993"', "true", "{}", "1.25", "9007199254740991.000000000000000001", "1e-99999999999999999999",
     "9223372036854775808", "-9223372036854775809", "1e99999999999999999999", "00", "NaN"]) {
     token = value;
     const argv = [...route.argv, "--profile", "lab"];
@@ -117,4 +117,15 @@ test("Q2 absent optional sizes stay absent and numeric-token work is bounded", a
   assert.equal(r.exitCode, 1);
   assert.equal(r.stdout, "");
   assert.ok(r.stderr.length < 4000);
+});
+
+test("Q2 newly visible nested page metadata escapes terminal controls", async t => {
+  const route = routes[3];
+  const cli = await setup(t, route, () => responseWire("9007199254740993", route).replace("demo.bin", "demo\\u001b[31m.bin"));
+  const argv = [...route.argv, "--profile", "lab"];
+  const r = await cli.fixture.run(cli.app, argv);
+  assert.equal(r.exitCode, 0, r.stderr);
+  assert.doesNotMatch(r.stdout, /\u001b/);
+  assert.match(r.stdout, /\\u001b/);
+  assert.equal(selected(await cli.fixture.json(cli.app, argv), route).path, "demo\u001b[31m.bin");
 });

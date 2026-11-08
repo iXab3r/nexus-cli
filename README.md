@@ -90,6 +90,15 @@ while waiting for input stops before HTTP or credential persistence.
 
 ## Read and search
 
+Asset `fileSize` values retain their exact signed int64 value in asset/component
+lists, details and metadata search results, including nested assets. JSON/RPC
+use a number within JavaScript's safe-integer range and an exact decimal string
+outside it. Human metadata views show exact byte counts. An absent optional size
+stays absent; an invalid, fractional or out-of-int64 size rejects the document or
+whole page, retaining the first undelivered checkpoint. Other metadata attributes
+keep their existing representation. Downloaded byte counts remain a separate
+transfer result.
+
 ```sh
 nexus-cli components list --repository releases
 nexus-cli components get COMPONENT_ID

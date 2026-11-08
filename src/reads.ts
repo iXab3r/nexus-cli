@@ -13,6 +13,7 @@ import {
   type OptionDefinition,
 } from "@eyeauras/cli-factory";
 import { checked, pathSegment } from "./client.js";
+import { parseMetadata } from "./metadata.js";
 type Item = Record<string, unknown>;
 interface PageResult {
   items: Item[];
@@ -86,7 +87,7 @@ async function body(
   } catch (cause) {
     throw diagnosticCause(cause, resourceRedactions(String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, readResource(path)));
   }
-  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  return parseMetadata(new TextDecoder("utf-8", { fatal: true }).decode(bytes), path);
 }
 /** Read complete pages, retaining the first undelivered checkpoint on failure. */
 export async function enumerate(
@@ -197,6 +198,11 @@ export async function enumerate(
   if (o.all) fail("pageBudget");
   return r;
 }
+function metadataLine(i: Item): string {
+  const size = typeof i.fileSize === "number" || typeof i.fileSize === "string" ? `${i.fileSize} B` : undefined;
+  return [i.id, i.name, i.version, i.path, size].filter(v => typeof v === "string").join("  ")
+    .replace(/[\x00-\x1f\x7f-\x9f]/g, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+}
 const pageView = recordView<PageResult>({
   fields: [
     { label: "Items", value: (r) => r.items.length },
@@ -208,11 +214,7 @@ const pageView = recordView<PageResult>({
     {
       title: () => "Metadata",
       lines: (r) =>
-        r.items.map((i) =>
-          [i.id, i.name, i.version, i.path]
-            .filter((v) => typeof v === "string")
-            .join("  "),
-        ),
+        r.items.flatMap(i => [metadataLine(i), ...(Array.isArray(i.assets) ? i.assets.map((a: Item) => "  " + metadataLine(a)) : [])]),
     },
   ],
 });
@@ -234,7 +236,7 @@ const detailView = recordView<Item>({
       lines: (r) =>
         Array.isArray(r.assets)
           ? r.assets.map((a: Item) =>
-              [a.id, a.path, a.downloadUrl]
+              [a.id, a.path, a.downloadUrl, typeof a.fileSize === "number" || typeof a.fileSize === "string" ? `${a.fileSize} B` : undefined]
                 .filter((v) => typeof v === "string")
                 .join("  "),
             )
