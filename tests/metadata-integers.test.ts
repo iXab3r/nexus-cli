@@ -129,3 +129,21 @@ test("Q2 newly visible nested page metadata escapes terminal controls", async t 
   assert.match(r.stdout, /\\u001b/);
   assert.equal(selected(await cli.fixture.json(cli.app, argv), route).path, "demo\u001b[31m.bin");
 });
+
+test("Q2 unrelated deeply nested metadata preserves the baseline JSON contract", async t => {
+  const route = routes[1];
+  const depth = 5000;
+  const deep = '{"n":'.repeat(depth) + '1' + '}'.repeat(depth);
+  const response = '{"id":"component","assets":[{"id":"asset","fileSize":9007199254740993}],"extraJsonAttributes":' + deep + '}';
+  // The native baseline parser/serializer admit this 30KB document.
+  assert.ok(JSON.stringify(JSON.parse(response)).length < 40000);
+  const cli = await setup(t, route, () => response);
+  const argv = [...route.argv, "--profile", "lab"];
+  for (const rpc of [false, true]) {
+    const value: any = rpc ? (await cli.fixture.rpc(cli.app, [argv]) as any[])[0].result : await cli.fixture.json(cli.app, argv);
+    assert.equal(value.assets[0].fileSize, "9007199254740993");
+    let child = value.extraJsonAttributes;
+    for (let i = 0; i < depth; i++) child = child.n;
+    assert.equal(child, 1);
+  }
+});
