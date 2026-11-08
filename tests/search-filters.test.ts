@@ -219,3 +219,25 @@ test("Q3 persistent RPC keeps repeated filters and Basic scoped per invocation/p
   assert.deepEqual(seen.map(r => r.query), ["?repositoryName=alpha-filter", "?repositoryName=beta-filter", ""]);
   assert.deepEqual(seen.map(r => r.auth), ["alpha", "beta", "alpha"].map(n => "Basic " + Buffer.from(n + ":synthetic-" + n).toString("base64")));
 });
+
+for (const leaf of leaves) test(`Q3 ${leaf} rejects every repeated dedicated wire flag before HTTP`, async t => {
+  const cli = await setup(t, leaf);
+  const scalar = ["repository", "name", "artifact-version", "group", "format", "q", "maven-base-version",
+    ...(leaf === "components" ? [] : ["maven-extension", "maven-classifier"]),
+    ...(leaf === "download" ? [] : ["continuation-token"])];
+  const cases = [
+    ...scalar.map(name => ["--" + name, "", "--" + name, "second"]),
+    ["--sort", "group", "--sort", "name"], ["--direction", "asc", "--direction", "desc"],
+    ["--prerelease", "false", "--prerelease", "true"], ["--timeout", "0", "--timeout", "1"],
+  ];
+  for (const flags of cases) for (const mode of ["human", "json", "rpc"] as const) {
+    const r = await invoke(cli, flags, mode);
+    assert.equal(r.exitCode, 2, flags[0] + r.stderr);
+    assert.equal(r.stdout, "");
+    if (mode !== "human") assert.equal(r.error.code, "usage");
+  }
+  assert.equal(cli.requests.length, 0);
+  // Failed parsing must not contaminate the next command's previous option values.
+  assert.equal((await invoke(cli, ["--q", "single"], "json")).exitCode, 0);
+  assert.equal(cli.requests.length, 1);
+});
