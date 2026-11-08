@@ -61,8 +61,9 @@ test("S30 pinned schema independently identifies both array responses and field 
 for (const [index, route] of routes.entries()) {
   test(`S30 ${route.path} useful projection, exact request and empty success in every mode`, async t => {
     let empty = false;
+    const expected = index === 0 ? samples[0] : [{...specification, componentFields: [{...specification.componentFields[0], description: "Directory help", options: {root: "Root directory"}}]}];
     const sample = index === 0 ? [{...samples[0][0], softQuotaAttributes: {attributes: {private: marker}}, future: marker}]
-      : [{...specification, future: marker, componentFields: [{...specification.componentFields[0], description: marker, options: {private: marker}}]}];
+      : [{...expected[0], future: marker, componentFields: [{...(expected[0] as any).componentFields[0], future: marker}]}];
     const cli = await setup(t, () => HttpResponse.json(empty ? [] : sample));
     for (const mode of modes) {
       const r = await invoke(cli, route.argv, mode);
@@ -75,7 +76,7 @@ for (const [index, route] of routes.entries()) {
           assert.match(r.stdout, /raw/); assert.match(r.stdout, /[Cc]omponent fields/); assert.match(r.stdout, /[Aa]sset fields/);
           assert.match(r.stdout, /directory: required \(string\)/); assert.match(r.stdout, /filename: optional \(string\)/);
         }
-      } else assert.deepEqual(r.data, samples[index]);
+      } else assert.deepEqual(r.data, expected);
     }
     empty = true;
     for (const mode of modes) {
@@ -175,14 +176,15 @@ for (const scope of ["componentFields", "assetFields"]) test(`S30 upload ${scope
 
 test("S30 existing format get shares scoped projection and field bounds", async t => {
   let size = 1;
-  const cli = await setup(t, () => HttpResponse.json({...specification, future: marker, componentFields: Array(size).fill({...specification.componentFields[0], description: marker})}));
+  const field = {...specification.componentFields[0], description: "Directory help"};
+  const cli = await setup(t, () => HttpResponse.json({...specification, future: marker, componentFields: Array(size).fill({...field, future: marker})}));
   const argv = ["formats", "upload-specs", "get", "raw"];
   for (const mode of modes) {
     const r = await invoke(cli, argv, mode);
     assert.equal(r.exitCode, 0, r.stderr);
     assert.doesNotMatch(r.stdout, new RegExp(marker));
     if (mode === "human") { assert.match(r.stdout, /Component fields/); assert.match(r.stdout, /Asset fields/); }
-    else assert.deepEqual(r.data, specification);
+    else assert.deepEqual(r.data, {...specification, componentFields: [field]});
   }
   size = 65;
   const r = await invoke(cli, argv, "json");
