@@ -132,10 +132,12 @@ test("Q2 newly visible nested page metadata escapes terminal controls", async t 
 
 test("Q2 unrelated deeply nested metadata preserves the baseline JSON contract", async t => {
   const route = routes[1];
-  const depth = 5000;
+  // Native JSON.stringify admits this depth on both Node 22 and Node 26.
+  // The original recursive reviver already fails below this depth.
+  const depth = 3000;
   const deep = '{"n":'.repeat(depth) + '1' + '}'.repeat(depth);
   const response = '{"id":"component","assets":[{"id":"asset","fileSize":9007199254740993}],"extraJsonAttributes":' + deep + '}';
-  // The native baseline parser/serializer admit this 30KB document.
+  // The native baseline parser/serializer admit this document.
   assert.ok(JSON.stringify(JSON.parse(response)).length < 40000);
   const cli = await setup(t, route, () => response);
   const argv = [...route.argv, "--profile", "lab"];
