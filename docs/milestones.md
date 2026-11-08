@@ -32,3 +32,21 @@ Material designs require independent parent review before implementation. S24 st
 S31 token administration (#614), public distribution (#615) and live qualification (#616)
 are conditional backlog outside these implementation commitments. Release and named service
 target authorization remain separate. Existing API closure does not implement a new story.
+
+## Approved standalone Nexus extension
+
+[Owner approval](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6725968859)
+selects the following ordered extension of the Nexus 3.96.3-01 offline contract.
+The complete acceptance and numerical forecast remain in
+[#645](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6725911727).
+
+| Milestone | Outcome | Operation dimensions |
+|---|---|---|
+| [M7](https://github.com/iXab3r/nexus-cli/milestone/7) | [Q1 known-store quota status #649](https://github.com/iXab3r/nexus-cli/issues/649) | One new named GET |
+| [M8](https://github.com/iXab3r/nexus-cli/milestone/8) | [Q2 exact metadata sizes #647](https://github.com/iXab3r/nexus-cli/issues/647) | Exact int64 values across six metadata routes; number in the safe range, decimal string outside it |
+| [M9](https://github.com/iXab3r/nexus-cli/milestone/9) | [Q3 native search selectors #650](https://github.com/iXab3r/nexus-cli/issues/650) | All 80/80/79 query dimensions on existing search endpoints |
+
+The selected pool contains eight identities. Full-contract promotion requires each
+milestone's final acceptance; a declared route or an old closed issue is insufficient.
+Keep the existing RED→GREEN and independent-review gates. This approval grants no
+live access, npm publication or TeamCity mutation.
