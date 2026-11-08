@@ -1,6 +1,6 @@
 import { readResource, resourceRedactions } from "./diagnostics.js";
 import { downloadCommand } from './downloads.js';
-import { searchOptions, searchQuery } from './search.js';
+import { searchOptions, searchQuery, singleSearchValue } from './search.js';
 import { deleteCommand, uploadCommand } from './mutations.js';
 import {
   CliError,
@@ -270,6 +270,7 @@ function listing(name: string, path: string, search = false) {
         {
           flags: "--continuation-token <token>",
           description: "Resume from a continuation token",
+          ...(search ? { parse: singleSearchValue } : {}),
         },
         { flags: "--all", description: "Read all pages within limits" },
         ...budgetOptions,

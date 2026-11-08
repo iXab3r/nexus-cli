@@ -25,6 +25,14 @@ const nativeStrings = new Set([
 interface NativeFilter { name: string; value: string }
 const parseFilter = jsonParser("Filter must be JSON with name and value.");
 function usage(message: string): never { throw new CliError(message, { code: "usage", exitCode: 2 }); }
+/** Detect duplicates before Commander replaces an earlier scalar query value. */
+export function singleSearchValue(value: string, previous: unknown): string {
+  if (previous !== undefined) usage("Each Nexus query parameter must have one value.");
+  return value;
+}
+const parseTimeout = integerParser({
+  min: -2147483648, max: 2147483647, signed: true, errorMessage: "Timeout must be a signed int32 decimal integer.",
+});
 function collectFilter(value: string, previous: unknown): NativeFilter[] {
   const r: any = parseFilter(value);
   if (!r || typeof r !== "object" || Array.isArray(r) || Object.keys(r).some(k => k !== "name" && k !== "value") ||
@@ -39,18 +47,19 @@ function collectFilter(value: string, previous: unknown): NativeFilter[] {
 export function searchOptions(assets: boolean): OptionDefinition[] {
   return [
     { flags: "--filter <json>", description: "Filter by a Nexus parameter (repeatable)", parse: collectFilter },
-    { flags: "--timeout <seconds>", description: "Pass the server search timeout", parse: integerParser({
-      min: -2147483648, max: 2147483647, signed: true, errorMessage: "Timeout must be a signed int32 decimal integer.",
-    }) },
+    { flags: "--timeout <seconds>", description: "Pass the server search timeout",
+      parse: (value, previous) => parseTimeout(singleSearchValue(value, previous)) },
     ...["repository", "name", "artifact-version", "group", "format", "q", "maven-base-version",
       ...(assets ? ["maven-extension", "maven-classifier"] : [])].map(name => ({
       flags: `--${name} <value>`,
       description: "Filter matching artifacts",
+      parse: singleSearchValue,
     })),
     {
       flags: "--sort <field>",
       description: "Sort by group, name, version or repository",
-      parse(value) {
+      parse(value, previous) {
+        singleSearchValue(value, previous);
         if (!["group", "name", "version", "repository"].includes(value))
           throw new CliError("Sort must be group, name, version or repository.", { code: "usage", exitCode: 2 });
         return value;
@@ -59,7 +68,8 @@ export function searchOptions(assets: boolean): OptionDefinition[] {
     {
       flags: "--direction <order>",
       description: "Order sorted matches asc or desc",
-      parse(value) {
+      parse(value, previous) {
+        singleSearchValue(value, previous);
         if (value !== "asc" && value !== "desc")
           throw new CliError("Direction must be asc or desc.", { code: "usage", exitCode: 2 });
         return value;
@@ -68,7 +78,8 @@ export function searchOptions(assets: boolean): OptionDefinition[] {
     {
       flags: "--prerelease <boolean>",
       description: "Filter prereleases with true or false",
-      parse(value) {
+      parse(value, previous) {
+        singleSearchValue(value, previous);
         if (value !== "true" && value !== "false")
           throw new CliError("Prerelease must be true or false.", { code: "usage", exitCode: 2 });
         return value; // Nexus declares a string, including the lowercase value "false".

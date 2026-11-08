@@ -141,8 +141,9 @@ option. The native `version` key maps to the same parameter as
 The boolean prerelease flag remains a convenience; a native `prerelease` string
 can be supplied through `--filter`.
 
-Each wire key has one value in this CLI. Duplicate filters or a filter conflicting
-with a dedicated flag fail before HTTP; unknown names and descriptor fields are
+Each wire key has one value in this CLI. Repeated dedicated query flags,
+duplicate filters or a filter conflicting with a dedicated flag fail before
+HTTP; unknown names and descriptor fields are
 usage errors. The pinned OpenAPI declares scalar parameters; the server source's
 additional repeated-format OR behavior is outside this CLI contract. Timeout
 accepts the signed int32 decimal range; it is forwarded as a server parameter,

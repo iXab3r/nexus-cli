@@ -152,6 +152,14 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   const nativeSaved = JSON.parse(invoke(["search","download",...nativeFlags,"--sha256",nativeDigest,"--output",join(temp,"native-selected.bin"),"--json"]));
   assert.equal(nativeSaved.verified,true);
   assert.equal(await readFile(nativeSaved.path,"utf8"),nativeBytes);
+  const beforeDuplicate = await readFile(discoveryRequests,"utf8");
+  const duplicateFlag = spawnSync(executable,["search","assets","--q","first","--q","second","--profile","public","--json"],{env,cwd:temp,encoding:"utf8",timeout:30000});
+  assert.equal(duplicateFlag.status,2);
+  assert.equal(duplicateFlag.stdout,"");
+  assert.equal(JSON.parse(duplicateFlag.stderr).error.code,"usage");
+  const duplicateRpc = run(executable,["--json-rpc"],{env,input:JSON.stringify({jsonrpc:"2.0",id:1,method:"cli.execute",params:{argv:["search","components","--continuation-token","first","--continuation-token","second","--profile","public"]}})+"\n"});
+  assert.equal(JSON.parse(duplicateRpc).error.data.exitCode,2);
+  assert.equal(await readFile(discoveryRequests,"utf8"),beforeDuplicate);
   console.log("Installed native search selectors, timeout and digest distinction passed offline.");
 
   for (const [argv, expected, human] of [
