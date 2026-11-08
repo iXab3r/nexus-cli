@@ -218,7 +218,7 @@ for (const leaf of leaves) for (const phase of ["transport", "body"]) test(`Q4 $
     return new Response(new ReadableStream({ start(c) { c.error(early); } }));
   } } }));
   for (const mode of modes) for (const verbose of [false, true]) {
-    const args = argv(leaf, "SYNTHETIC_PRIVATE_NAME").concat(verbose ? ["--verbose"] : []);
+    const args = argv(leaf, "SYNTHETIC_PRIVATE_NAME?雪").concat(verbose ? ["--verbose"] : []);
     let output: string; let error: any;
     if (mode === "rpc") { const r: any = (await f.rpc(app, [args]))[0]; assert.equal(r.error.data.exitCode, 1); output = JSON.stringify(r); error = r.error.data; }
     else { const r = await f.run(app, args.concat(mode === "json" ? ["--json"] : [])); assert.equal(r.exitCode, 1); output = r.stdout + r.stderr; if (mode === "json") error = JSON.parse(r.stderr).error; }
