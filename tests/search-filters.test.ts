@@ -242,8 +242,8 @@ for (const leaf of leaves) test(`Q3 ${leaf} rejects every repeated dedicated wir
   assert.equal(cli.requests.length, 1);
 });
 
-for (const leaf of leaves) for (const phase of ["transport", "body"]) {
-  test(`Q3 ${leaf} ${phase} form-spelled selectors stay private in every diagnostic mode`, async t => {
+for (const leaf of leaves) for (const phase of ["transport", "body"]) for (const spelling of ["form", "decoded"]) {
+  test(`Q3 ${leaf} ${phase} ${spelling}-spelled selectors stay private in every diagnostic mode`, async t => {
     const f = await createCliFixture(t, { applicationId: "nexus-cli", profiles: [{ name: "lab",
       values: { url: origin, authMode: "anonymous" }, permissions: ["ReadOnly"],
     }] });
@@ -251,13 +251,20 @@ for (const leaf of leaves) for (const phase of ["transport", "body"]) {
       const url = new URL(input instanceof Request ? input.url : String(input));
       // A transport may serialize query parameters without the enclosing URL, after an early copy.
       const form = url.searchParams.toString().replace(/%[A-F0-9]{2}/g, triplet => triplet.toLowerCase());
-      const native = Object.assign(new Error("synthetic socket failed " + form), { code: "ECONNRESET" });
+      const detail = spelling === "form" ? form : url.searchParams.get("docker.labels");
+      const native = Object.assign(new Error("synthetic socket failed " + detail), { code: "ECONNRESET" });
       native.stack = `${native.name}: ${native.message}\n    at syntheticSelectorTransport (selector-native.js:17:3)`;
       const early = diagnosticCause(native);
       if (phase === "transport") throw early;
       return new Response(new ReadableStream({ start(c) { c.error(early); } }));
     } } }));
-    for (const value of ["SYNTHETIC PRIVATE SELECTOR", "SYNTHETIC PRIVATE +~!()雪"]) {
+    const values = spelling === "form" ? ["SYNTHETIC PRIVATE SELECTOR", "SYNTHETIC PRIVATE +~!()雪"] : [
+      "M9_PRIVATE_SELECTOR_PREFIX token=SYNTHETIC_VALUE",
+      "M9_PRIVATE_SELECTOR_PREFIX api_key=SYNTHETIC_VALUE",
+      "M9_PRIVATE_SELECTOR_PREFIX https://synthetic:private@host.example.test/p?token=SYNTHETIC_VALUE",
+      "M9_PRIVATE_SELECTOR_PREFIX Basic SYNTHETIC_VALUE",
+    ];
+    for (const value of values) {
       for (const verbose of [false, true]) for (const mode of ["human", "json", "rpc"] as const) {
         const argv = ["search", leaf, ...filter("docker.labels", value), "--profile", "lab",
           ...(leaf === "download" ? ["--output", join(f.root, "form-error.bin")] : []), ...(verbose ? ["--verbose"] : [])];
