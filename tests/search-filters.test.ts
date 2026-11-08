@@ -96,7 +96,9 @@ for (const leaf of leaves) test(`Q3 ${leaf} rejects malformed and conflicting qu
   ];
   for (const argv of invalid) for (const mode of ["human", "json", "rpc"] as const) {
     const r = await invoke(cli, argv, mode);
-    assert.equal(r.exitCode, 2, JSON.stringify(argv) + r.stderr);
+    // Published Core helpers own syntax/int32 parser failures (exit 1); Nexus rules use 2.
+    const expectedExit = argv[0] === "--timeout" || argv[1] === "{SYNTHETIC_PRIVATE_FILTER" ? 1 : 2;
+    assert.equal(r.exitCode, expectedExit, JSON.stringify(argv) + r.stderr);
     if (mode !== "human") assert.equal(r.error.code, "usage");
     assert.equal(r.stdout, "");
     assert.doesNotMatch(r.stderr, /SYNTHETIC_PRIVATE_FILTER/);
@@ -161,13 +163,24 @@ for (const leaf of leaves) test(`Q3 ${leaf} gate and safe remote failures preser
 for (const leaf of leaves) test(`Q3 ${leaf} body diagnostics redact standalone native filter values`, async t => {
   const marker = "SYNTHETIC_PRIVATE_FILTER";
   const cli = await setup(t, leaf, () => new HttpResponse(new ReadableStream({ start(c) {
-    c.error(Object.assign(new Error(marker), { code: "EFILTER_BODY" }));
+    c.error(Object.assign(new Error("synthetic body failure " + marker), { code: "EFILTER_BODY" }));
   } })));
   for (const mode of ["human", "json", "rpc"] as const) {
     const r = await invoke(cli, filter("docker.contentDigest", marker), mode);
     assert.equal(r.exitCode, 1);
     assert.doesNotMatch(r.stdout + r.stderr, new RegExp(marker));
-    assert.match(r.stderr, /EFILTER_BODY/);
+    assert.match(r.stderr, /synthetic body failure/);
+    if (mode !== "human") {
+      const pending = [r.error];
+      let found = false;
+      while (pending.length) {
+        const error = pending.pop();
+        if (!error) continue;
+        if (error.code === "EFILTER_BODY") found = true;
+        if (error.cause) pending.push(error.cause);
+      }
+      assert.ok(found);
+    }
   }
 });
 

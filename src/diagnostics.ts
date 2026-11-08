@@ -21,7 +21,11 @@ export function resourceRedactions(url: string, ...resources: (string | undefine
     values.add(value);
     try {
       // Core may already have replaced URL queries before the integration catches a cause.
-      const pathname = new URL(value).pathname;
+      const parsed = new URL(value);
+      const pathname = parsed.pathname;
+      for (const [key, selector] of parsed.searchParams) {
+        if (selector && !["sort", "direction", "timeout"].includes(key)) values.add(selector);
+      }
       if (pathname !== '/') {
         values.add(pathname);
         values.add(decodeURIComponent(pathname));

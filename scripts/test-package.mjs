@@ -1,5 +1,6 @@
 import { ciRoundtrip } from "./test-ci-roundtrip.mjs";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -16,6 +17,8 @@ assert.ok(process.argv[2] !== "--tarball" || (tarball && isAbsolute(tarball)), "
 assert.ok(version === undefined || /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version), "Pass a registry version.");
 const temp = await mkdtemp(join(await realpath(tmpdir()), "nexus-package-"));
 const prefix = join(temp, "prefix");
+const nativeBytes = "offline native selection";
+const nativeDigest = createHash("sha256").update(nativeBytes).digest("hex");
 const installEnv = { ...process.env };
 for (const key of Object.keys(installEnv)) if (/token|^npm_config_|^node_options$|^node_path$/i.test(key)) delete installEnv[key];
 function run(file, args, options = {}) {
@@ -69,6 +72,14 @@ globalThis.fetch = async (input, init = {}) => {
   }
   if (url.pathname.endsWith("/assets/exact")) return new Response('{"id":"exact","fileSize":9223372036854775807}');
   if (url.pathname.endsWith("/components/exact")) return new Response('{"id":"component","assets":[{"id":"exact","fileSize":-9223372036854775808}]}');
+  if (url.searchParams.get("repositoryName") === "native-select") {
+    require("node:assert/strict").deepEqual(Object.fromEntries(url.searchParams), {repositoryName:"native-select",sha256:${JSON.stringify(nativeDigest)},timeout:"10"});
+    if (url.pathname.endsWith("/search/assets/download")) return new Response(null,{status:302,headers:{location:"https://nexus.example.test/content/native-selected.bin"}});
+    const item = url.pathname.endsWith("/search/assets") ? '{"id":"native","fileSize":9223372036854775807}'
+      : '{"id":"component","assets":[{"id":"native","fileSize":9223372036854775807}]}';
+    return new Response('{"items":['+item+'],"continuationToken":null}');
+  }
+  if (url.pathname.endsWith("/content/native-selected.bin")) return new Response(${JSON.stringify(nativeBytes)});
   if (url.pathname.endsWith("/blobstores")) return url.pathname.includes("/denied/")
     ? new Response("synthetic private response", {status:403})
     : Response.json([{name:"existing",type:"File",softQuotaAttributes:{private:"omitted"}}]);
@@ -133,6 +144,15 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   const exactRpc = run(executable,["--json-rpc"],{env,input:JSON.stringify({jsonrpc:"2.0",id:1,method:"cli.execute",params:{argv:["components","get","exact","--profile","public"]}})+"\n"});
   assert.equal(JSON.parse(exactRpc).result.assets[0].fileSize,"-9223372036854775808");
   console.log("Installed exact int64 metadata passed in human/JSON/RPC.");
+  const nativeFlags = ["--filter",JSON.stringify({name:"repositoryName",value:"native-select"}),"--filter",JSON.stringify({name:"sha256",value:nativeDigest}),"--timeout","10","--profile","public"];
+  assert.equal(JSON.parse(invoke(["search","assets",...nativeFlags,"--json"])).items[0].fileSize,"9223372036854775807");
+  assert.match(invoke(["search","assets",...nativeFlags]),/9223372036854775807/);
+  const nativeRpc = run(executable,["--json-rpc"],{env,input:JSON.stringify({jsonrpc:"2.0",id:1,method:"cli.execute",params:{argv:["search","components",...nativeFlags]}})+"\n"});
+  assert.equal(JSON.parse(nativeRpc).result.items[0].assets[0].fileSize,"9223372036854775807");
+  const nativeSaved = JSON.parse(invoke(["search","download",...nativeFlags,"--sha256",nativeDigest,"--output",join(temp,"native-selected.bin"),"--json"]));
+  assert.equal(nativeSaved.verified,true);
+  assert.equal(await readFile(nativeSaved.path,"utf8"),nativeBytes);
+  console.log("Installed native search selectors, timeout and digest distinction passed offline.");
 
   for (const [argv, expected, human] of [
     [["blobstores", "list"], [{name:"existing",type:"File"}], /existing/],
