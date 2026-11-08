@@ -24,7 +24,11 @@ export function resourceRedactions(url: string, ...resources: (string | undefine
       const parsed = new URL(value);
       const pathname = parsed.pathname;
       for (const [key, selector] of parsed.searchParams) {
-        if (selector && !["sort", "direction", "timeout"].includes(key)) values.add(selector);
+        if (selector && !["sort", "direction", "timeout"].includes(key)) {
+          values.add(selector);
+          // Form serialization uses '+' for spaces and escapes more punctuation than URI encoding.
+          values.add(new URLSearchParams([["", selector]]).toString().slice(1));
+        }
       }
       if (pathname !== '/') {
         values.add(pathname);

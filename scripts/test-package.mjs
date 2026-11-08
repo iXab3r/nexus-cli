@@ -64,6 +64,9 @@ const existingFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const url = new URL(input);
   require("node:fs").appendFileSync(${JSON.stringify(discoveryRequests)}, (init.method ?? "GET") + " " + url.pathname + url.search + "\\n");
+  if (url.searchParams.get("q") === "SYNTHETIC PRIVATE SELECTOR") {
+    throw Object.assign(new Error("synthetic socket failed " + url.searchParams), {code:"ECONNRESET"});
+  }
   if (url.pathname.endsWith("/quota-status")) {
     require("node:assert/strict").equal(init.method ?? "GET", "GET");
     require("node:assert/strict").equal(url.search, "");
@@ -160,6 +163,10 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   const duplicateRpc = run(executable,["--json-rpc"],{env,input:JSON.stringify({jsonrpc:"2.0",id:1,method:"cli.execute",params:{argv:["search","components","--continuation-token","first","--continuation-token","second","--profile","public"]}})+"\n"});
   assert.equal(JSON.parse(duplicateRpc).error.data.exitCode,2);
   assert.equal(await readFile(discoveryRequests,"utf8"),beforeDuplicate);
+  const privateQuery = spawnSync(executable,["search","assets","--q","SYNTHETIC PRIVATE SELECTOR","--profile","public","--json"],{env,cwd:temp,encoding:"utf8",timeout:30000});
+  assert.equal(privateQuery.status,1);
+  assert.doesNotMatch(privateQuery.stdout+privateQuery.stderr,/SYNTHETIC|PRIVATE/);
+  assert.match(privateQuery.stderr,/ECONNRESET/);
   console.log("Installed native search selectors, timeout and digest distinction passed offline.");
 
   for (const [argv, expected, human] of [
