@@ -2,6 +2,24 @@
 
 Nexus source: [release-3.96.3-01](https://github.com/sonatype/nexus-public/tree/release-3.96.3-01), tree `829f297c35984a5fac590a366e949cd9a9a2eb79`. Framework: [v0.6.1 pinned source](https://github.com/iXab3r/EyeAuras.CliFactory/tree/c313194f8cd22547dae6ae8693a2771f3a5066f0). These conclusions establish offline contracts, not live compatibility. S24 descriptions retain deferred design only.
 
+## Exact metadata integers
+
+The pinned `AssetXO.fileSize` is `integer/int64`. Its full signed range cannot
+be represented exactly by a JavaScript number. The approved
+[#645 policy](https://github.com/iXab3r/nexus-cli/issues/645#issuecomment-6725968859)
+uses numbers in the safe-integer range and exact decimal strings outside it.
+Nexus metadata decoding uses native JSON parsing plus an iterative token scan,
+then validates/normalizes only `fileSize` on the known AssetXO positions (direct
+records, pages and nested ComponentXO assets). Unrelated subtrees are skipped
+with a depth counter; they do not enter a recursive reviver. Unknown fields with
+that spelling keep their existing representation.
+
+Valid decimal/exponent JSON spellings of integral int64 values have the same
+value. Nonintegral, wrong-type or out-of-range sizes fail without a rounded
+result; body and page budgets/checkpoints still apply. Magnitude is checked
+before zero padding or bounded BigInt conversion. This is a Nexus DTO policy,
+not a generic Core JSON parser, download byte-accounting change or live proof.
+
 ## Hosted GET and PUT
 
 Under `public/common/components/nexus-repository-services/src/main/java/org/sonatype/nexus/repository/rest/api/`, `AbstractRepositoriesApiResource.setConvertersByFormat` builds the qualifier map from injected adapters; GET selects the format adapter, falling back to the default. Raw V1 inherits the hosted resource GET. Under `public/common/components/formats/nexus-repository-raw/src/main/java/org/sonatype/nexus/repository/raw/`, `RawRepositoryAdapter` is `@Component @Qualifier(RawFormat.NAME)` and its hosted switch constructs `RawHostedApiRepository` with storage, cleanup, component and raw. Its getters serialize concrete properties despite the abstract OpenAPI return type. `RawRepositoryAdapterTest` supplies upstream coverage.
