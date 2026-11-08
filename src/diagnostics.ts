@@ -41,9 +41,9 @@ export function readRepository(path: string): string | undefined {
 /** Recover known opaque read selectors for redaction only, never for diagnostic labels. */
 export function readResource(path: string): string | undefined {
   const route = path.split('?')[0];
-  const match = /^(?:assets|components)\/([^/]+)$|^formats\/([^/]+)\/upload-specs$/.exec(route);
+  const match = /^(?:assets|components)\/([^/]+)$|^formats\/([^/]+)\/upload-specs$|^blobstores\/([^/]+)\/quota-status$/.exec(route);
   if (match) {
-    try { return decodeURIComponent(match[1] ?? match[2]); } catch { return undefined; }
+    try { return decodeURIComponent(match[1] ?? match[2] ?? match[3]); } catch { return undefined; }
   }
   return readRepository(path);
 }

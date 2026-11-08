@@ -129,9 +129,11 @@ test("Q1 human data escapes terminal controls while JSON/RPC preserve service st
   for (const mode of modes) {
     const r = await invoke(cli, mode);
     assert.equal(r.exitCode, 0, r.stderr);
-    assert.doesNotMatch(r.stdout, /[\u001b\u009b]/);
     if (mode !== "human") assert.deepEqual(r.data, expected);
-    else assert.match(r.stdout, /\\u001b/);
+    else {
+      assert.doesNotMatch(r.stdout, /[\u001b\u009b]/);
+      assert.match(r.stdout, /\\u001b/);
+    }
   }
 });
 

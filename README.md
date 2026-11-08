@@ -209,6 +209,27 @@ discovery preflight. HTTP 401 means rejected authentication for that request;
 manage server RBAC. Shapes come from pinned 3.96.3-01 OpenAPI source, not a live
 edition/version compatibility qualification.
 
+### Check a known blob store quota
+
+```text
+nexus-cli blobstores quota-status existing --profile lab --json
+```
+
+This ReadOnly command makes one GET to
+`/service/rest/v1/blobstores/{name}/quota-status`, without discovery or writes.
+Nexus requires authentication and `nexus:blobstores:read`; the local permission
+gate does not grant that server privilege. The result contains `blobStoreName`,
+`isViolation` and the server's `message`. Human output escapes terminal controls;
+JSON/RPC retain the service strings.
+
+A false violation flag succeeds. Nexus also uses false plus a message when no
+quota is configured, so the CLI does not invent a separate configured or health
+flag. A soft quota is advisory and does not prove writes are blocked. A true flag
+exits 1 with `nexus.blobstore.quotaViolation` and the complete quota result:
+ordinary JSON puts the result on stdout and the error on stderr; RPC carries it
+in `error.data.result`. HTTP/decode failures provide no quota result and do not
+retry. A denied or missing store is not replaced by a discovery request.
+
 ### Import an original Maven POM
 
 ```sh

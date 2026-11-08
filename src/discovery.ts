@@ -3,6 +3,7 @@ import { pathSegment } from "./client.js";
 import { document } from "./mutations.js";
 
 interface BlobStore { name: string; type: string }
+interface QuotaStatus { blobStoreName: string; isViolation: boolean; message: string }
 interface UploadField { name: string; optional: boolean; type?: string }
 interface UploadSpecification {
   format: string;
@@ -28,6 +29,21 @@ function blobStore(value: any): BlobStore {
   if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
   return {name: label(value.name), type: label(value.type)};
 }
+/** Quota messages are service data; only the human view escapes terminal controls. */
+function quotaText(value: string): string {
+  return value.replace(/[\x00-\x1f\x7f-\x9f]/g, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+}
+async function quotaStatus(c: CommandContext, name: string): Promise<QuotaStatus> {
+  const r = await document(c, "blobstores/" + pathSegment(name) + "/quota-status");
+  if (!r || typeof r !== "object" || Array.isArray(r) ||
+    typeof r.blobStoreName !== "string" || r.blobStoreName.length === 0 ||
+    typeof r.isViolation !== "boolean" || typeof r.message !== "string" || r.message.length === 0) invalid();
+  const result = { blobStoreName: r.blobStoreName as string, isViolation: r.isViolation as boolean, message: r.message as string };
+  if (result.isViolation) throw new CliError("Blob store soft quota is violated.", {
+    code: "nexus.blobstore.quotaViolation", result,
+  });
+  return result;
+}
 /** Project only upload selectors and requiredness; arbitrary service attributes stay private. */
 function uploadSpecification(value: any): UploadSpecification {
   if (!value || typeof value !== "object" || Array.isArray(value) || typeof value.multipleUpload !== "boolean") invalid();
@@ -46,6 +62,14 @@ function fieldText(field: UploadField): string {
 }
 /** Discover projected blob store labels under the local ReadOnly gate. */
 export const blobstoresCommand = command("blobstores", "Inspect blob stores", [
+  command("quota-status <name>", "Check a blob store soft quota", ({args}, c) => quotaStatus(c, String(args.name)), {
+    permission: Permission.ReadOnly,
+    view: recordView<QuotaStatus>({fields: [
+      {label: "Blob store", value: r => quotaText(r.blobStoreName)},
+      {label: "Quota violated", value: r => r.isViolation},
+      {label: "Message", value: r => quotaText(r.message)},
+    ]}),
+  }),
   command("list", "List blob store names and types", async (_input, c) => (await discovery(c, "blobstores")).map(blobStore), {
     permission: Permission.ReadOnly,
     view: tableView<BlobStore>({columns: [

@@ -61,6 +61,12 @@ const existingFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const url = new URL(input);
   require("node:fs").appendFileSync(${JSON.stringify(discoveryRequests)}, (init.method ?? "GET") + " " + url.pathname + url.search + "\\n");
+  if (url.pathname.endsWith("/quota-status")) {
+    require("node:assert/strict").equal(init.method ?? "GET", "GET");
+    require("node:assert/strict").equal(url.search, "");
+    const violated = url.pathname.includes("/violating/");
+    return Response.json({blobStoreName:violated ? "violating" : "existing",isViolation:violated,message:violated ? "Quota exceeded" : "Quota available"});
+  }
   if (url.pathname.endsWith("/blobstores")) return url.pathname.includes("/denied/")
     ? new Response("synthetic private response", {status:403})
     : Response.json([{name:"existing",type:"File",softQuotaAttributes:{private:"omitted"}}]);
@@ -107,6 +113,18 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   assert.match(invoke(["profile", "configure", "public", "--url", "https://nexus.example.test:443/context", "--auth-mode", "anonymous", "--json"]), /anonymousConfigured/);
   assert.match(invoke(["profile", "show", "public", "--json"]), /:443\/context/);
   assert.equal(JSON.parse(invoke(["assets", "list", "--repository", "releases", "--profile", "public", "--json"])).items[0].id, "offline-asset");
+
+  const quota = ["blobstores", "quota-status", "existing", "--profile", "public"];
+  assert.deepEqual(JSON.parse(invoke([...quota, "--json"])), {blobStoreName:"existing",isViolation:false,message:"Quota available"});
+  assert.match(invoke(quota), /Quota available/);
+  const violation = ["blobstores", "quota-status", "violating", "--profile", "public"];
+  const quotaFailure = spawnSync(executable, [...violation,"--json"], {env,cwd:temp,encoding:"utf8",timeout:30000});
+  assert.equal(quotaFailure.status,1);
+  assert.equal(JSON.parse(quotaFailure.stdout).isViolation,true);
+  assert.equal(JSON.parse(quotaFailure.stderr).error.code,"nexus.blobstore.quotaViolation");
+  const quotaRpc = run(executable,["--json-rpc"],{env,input:JSON.stringify({jsonrpc:"2.0",id:1,method:"cli.execute",params:{argv:violation}})+"\n"});
+  assert.equal(JSON.parse(quotaRpc).error.data.result.isViolation,true);
+  console.log("Installed quota status success and failure channels passed offline.");
 
   for (const [argv, expected, human] of [
     [["blobstores", "list"], [{name:"existing",type:"File"}], /existing/],
