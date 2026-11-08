@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { createCli } from "@eyeauras/cli-factory";
+import { createCli, diagnosticCause } from "@eyeauras/cli-factory";
 import { createCliFixture } from "@eyeauras/cli-factory/testing";
 import { createDefinition } from "../src/cli.js";
 import { offlineCli } from "./offline.js";
@@ -241,3 +241,45 @@ for (const leaf of leaves) test(`Q3 ${leaf} rejects every repeated dedicated wir
   assert.equal((await invoke(cli, ["--q", "single"], "json")).exitCode, 0);
   assert.equal(cli.requests.length, 1);
 });
+
+for (const leaf of leaves) for (const phase of ["transport", "body"]) {
+  test(`Q3 ${leaf} ${phase} form-spelled selectors stay private in every diagnostic mode`, async t => {
+    const f = await createCliFixture(t, { applicationId: "nexus-cli", profiles: [{ name: "lab",
+      values: { url: origin, authMode: "anonymous" }, permissions: ["ReadOnly"],
+    }] });
+    const app = f.createApplication(runtime => createCli({ ...createDefinition(), runtime: { ...runtime, fetch: async input => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      // A transport may serialize query parameters without the enclosing URL, after an early copy.
+      const form = url.searchParams.toString().replace(/%[A-F0-9]{2}/g, triplet => triplet.toLowerCase());
+      const native = Object.assign(new Error("synthetic socket failed " + form), { code: "ECONNRESET" });
+      native.stack = `${native.name}: ${native.message}\n    at syntheticSelectorTransport (selector-native.js:17:3)`;
+      const early = diagnosticCause(native);
+      if (phase === "transport") throw early;
+      return new Response(new ReadableStream({ start(c) { c.error(early); } }));
+    } } }));
+    for (const value of ["SYNTHETIC PRIVATE SELECTOR", "SYNTHETIC PRIVATE +~!()雪"]) {
+      for (const verbose of [false, true]) for (const mode of ["human", "json", "rpc"] as const) {
+        const argv = ["search", leaf, ...filter("docker.labels", value), "--profile", "lab",
+          ...(leaf === "download" ? ["--output", join(f.root, "form-error.bin")] : []), ...(verbose ? ["--verbose"] : [])];
+        let text: string;
+        let error: any;
+        if (mode === "rpc") {
+          const r: any = (await f.rpc(app, [argv]))[0];
+          assert.equal(r.error.data.exitCode, 1); text = JSON.stringify(r); error = r.error.data;
+        } else {
+          const r = await f.run(app, [...argv, ...(mode === "json" ? ["--json"] : [])]);
+          assert.equal(r.exitCode, 1); text = r.stdout + r.stderr;
+          if (mode === "json") error = JSON.parse(r.stderr).error;
+        }
+        assert.doesNotMatch(text, /SYNTHETIC|PRIVATE|%e9%9b%aa/i);
+        assert.match(text, /synthetic socket failed/);
+        if (verbose) assert.match(text, /selector-native\.js:17:3/);
+        if (mode !== "human") {
+          const codes = [];
+          for (let e = error; e; e = e.cause) codes.push(e.code);
+          assert.ok(codes.includes("ECONNRESET"));
+        }
+      }
+    }
+  });
+}
