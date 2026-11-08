@@ -71,6 +71,12 @@ The 3.96.3-01 source baseline is not a live compatibility claim.
   Read/Write/Delete. Full Nexus parity, extra formats/providers/backends and administrative machinery
   require a new explicit scope decision; shared names do not prove equivalent semantics. All examples
   and fixtures stay synthetic; real endpoints, identities, credentials and responses stay out of Git.
+- **Native-client publication.** Each format publishes through its native clients. Depot targets
+  20+ formats; keep this CLI on common resources and selected management workflows. Do not add
+  per-format pack/publish implementations, native-client process wrappers or universal publishing
+  commands. S34 and upload/upload-spec references are outside current CLI scope; see
+  [the owner decision](https://github.com/iXab3r/nexus-cli/issues/643). No new format is selected
+  merely by this long-term target.
 - **Historical compatibility evidence.** v0.1.0 and existing commands/tests form a Nexus baseline.
   Preserve delivered functionality until a reviewed replacement migrates consumers; do not claim
   Depot support, delete legacy commands or add fallback behavior from this planning update alone.

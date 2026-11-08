@@ -68,10 +68,12 @@
     },
     "createComponents": {
       "issue": 586,
-      "disposition": "candidate",
-      "reason": "Пакет/версия, публикация и удаление полезны; нормализация, manifest/commit и занятые координаты сохраняются.",
+      "disposition": "outside-scope",
+      "reason": "Публикация принадлежит родным клиентам форматов; Nexus component upload/upload-specs не являются задачей nexus-cli для Depot. Историческая поставка сохраняется.",
       "flags": [
-        "format-specific-publication-and-finalize"
+        "format-specific-publication-and-finalize",
+        "native-client-publication",
+        "historical-nexus-delivery-only"
       ]
     },
     "createConfigurationAssetsImport": {
@@ -1177,9 +1179,12 @@
     },
     "getFormatsUploadSpecs": {
       "issue": 80,
-      "disposition": "candidate",
-      "reason": "Обнаружение поддерживаемых upload схем полезно; объявлять только реально поддержанные форматы/способы публикации.",
-      "flags": []
+      "disposition": "outside-scope",
+      "reason": "Публикация принадлежит родным клиентам форматов; Nexus component upload/upload-specs не являются задачей nexus-cli для Depot. Историческая поставка сохраняется.",
+      "flags": [
+        "native-client-publication",
+        "historical-nexus-delivery-only"
+      ]
     },
     "getIqAudit": {
       "issue": 110,
@@ -1850,9 +1855,12 @@
     },
     "listFormatsUploadSpecs": {
       "issue": 81,
-      "disposition": "candidate",
-      "reason": "Обнаружение поддерживаемых upload схем полезно; объявлять только реально поддержанные форматы/способы публикации.",
-      "flags": []
+      "disposition": "outside-scope",
+      "reason": "Публикация принадлежит родным клиентам форматов; Nexus component upload/upload-specs не являются задачей nexus-cli для Depot. Историческая поставка сохраняется.",
+      "flags": [
+        "native-client-publication",
+        "historical-nexus-delivery-only"
+      ]
     },
     "listHttp": {
       "issue": 101,
@@ -2999,5 +3007,6 @@
       "flags": []
     }
   },
-  "scopeDecisionIssue": "https://github.com/iXab3r/nexus-cli/issues/637"
+  "scopeDecisionIssue": "https://github.com/iXab3r/nexus-cli/issues/637",
+  "nativePublicationDecision": "https://github.com/iXab3r/nexus-cli/issues/643"
 }

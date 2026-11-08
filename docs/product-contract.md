@@ -7,7 +7,9 @@ The CLI targets EyeAuras.Depot package hosting over bounded Nexus compatibility.
 control new task selection. They supersede the earlier universal-Nexus/no-Depot direction.
 Historical approvals and v0.1.0 evidence below remain records of Nexus delivery; they do not
 approve every operation for Depot or establish server compatibility. No runtime/auth behavior
-is changed by this scope decision.
+is changed by this scope decision. Publication belongs to each format's native clients;
+Depot's 20+ format target does not expand this CLI into per-format publishers. S34 is
+superseded by [owner decision #643](https://github.com/iXab3r/nexus-cli/issues/643).
 
 ## Historical Nexus baseline and approvals
 

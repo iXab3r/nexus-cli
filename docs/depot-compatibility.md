@@ -33,10 +33,20 @@ New upstream operations default to unselected until assessed; a new spec pin is 
 
 ## Package-hosting boundary
 
-Depot's current formats are npm, NuGet, Cargo and versioned generic artifacts. Hosted repositories,
-package/version/files, permission-filtered discovery, safe download, publication and explicit
-whole-version/package removal supply the relevant workflows. Each format retains its native
-identity, validation and client behavior; one universal REST upload is not assumed.
+Depot's delivered baseline has npm, NuGet, Cargo and versioned generic artifacts. The product
+is expected to support **20+ formats**; that is a server/protocol expansion direction, not a
+four-format ceiling or approval to implement a particular extra format now.
+
+**Publication belongs to each format's native clients.** nexus-cli provides common repository,
+package/version/file discovery, safe downloads and selected management/removal operations.
+It does not acquire per-format packing/publishing code, a universal publish command or process
+wrappers around native clients. A new Depot format must not require another CLI publisher.
+Format-specific validation, framing, metadata and durable commit remain server/protocol concerns.
+No new generic-artifact publishing client is selected by this clarification.
+
+[Owner decision #643](https://github.com/iXab3r/nexus-cli/issues/643) supersedes S34: that draft
+and the Nexus component-upload/upload-spec references are outside this CLI's current delivery
+scope. Historical v0.1.0 commands and completed evidence remain intact.
 
 Keep immutable published versions/manifests, atomic visibility and documented durability, occupied
 published coordinates, and independent current Read/Write/Delete. A file DELETE must not mutate a
@@ -64,8 +74,8 @@ reviewed replacement migrates consumers; this scope update removes no runtime be
 no qualified Depot support. Historical Maven support is not a Depot format decision. S24 and
 Nexus-edition/realm token administration S31 are outside the current Depot plan.
 
-The [S32–S35 drafts](stories.md#current-depot-drafts) cover connection, read/download, publication
-and whole-version removal.
+The [S32, S33 and S35 drafts](stories.md#current-depot-drafts) cover connection, read/download
+and whole-version removal. S34 is closed NOT_PLANNED by the native-client publication decision.
 They stay unmilestoned and contract-blocked under
 [Depot #210](https://github.com/iXab3r/EyeAuras.Depot/issues/210). Concrete syntax/route/DTO/format
 selection and dependencies must be settled there before implementation. Tests must include the

@@ -15,8 +15,11 @@ operation dependencies require agreement under Depot #210 before pickup.
 |---|---|
 | [S32 #638](https://github.com/iXab3r/nexus-cli/issues/638) | Connect using an existing Depot user token with isolated secure profiles |
 | [S33 #639](https://github.com/iXab3r/nexus-cli/issues/639) | Find packages/versions/files and download with identity/integrity preserved |
-| [S34 #640](https://github.com/iXab3r/nexus-cli/issues/640) | Publish through a selected format binding without changing existing versions |
 | [S35 #641](https://github.com/iXab3r/nexus-cli/issues/641) | Remove a whole package/version under independent current Delete authority |
+
+S34 [#640](https://github.com/iXab3r/nexus-cli/issues/640) is closed NOT_PLANNED: publication
+belongs to native clients under [owner decision #643](https://github.com/iXab3r/nexus-cli/issues/643).
+The CLI does not gain format-specific publishers or native-client process wrappers.
 
 ## Historical Nexus acceptance
 
