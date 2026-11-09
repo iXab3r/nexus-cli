@@ -185,3 +185,17 @@ test("#677 CLI-only replay provisions and reconciles 28 synthetic repositories",
   assert.equal(state.get("nuget-proxy").nugetProxy.queryCacheItemMaxAge, 3700);
   assert.equal(state.get("nuget-proxy").httpClient.connection.timeout, 59);
 });
+
+test("#682 NuGet proxy preserves response-only storage write policy", async t => {
+  const response = { name: "proxy", online: true, storage: { blobStoreName: "default", strictContentTypeValidation: true, writePolicy: "ALLOW" }, proxy: { remoteUrl: "https://upstream.example.test/index", contentMaxAge: 1440, metadataMaxAge: 1440 }, negativeCache: { enabled: true, timeToLive: 1440 }, httpClient: { blocked: false, autoBlock: true }, nugetProxy: { nugetVersion: "V3", queryCacheItemMaxAge: 3600 } };
+  const { fixture: f, app } = await offlineCli(t, http.get("https://nexus.example.test/service/rest/v1/repositories/nuget/proxy/proxy", () => HttpResponse.json(response)));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  const argv = ["repositories", "proxy", "nuget", "get", "proxy", "--profile", "lab"];
+  const get = await f.run(app, [...argv, "--json"]);
+  assert.equal(get.exitCode, 0, get.stderr); assert.deepEqual(JSON.parse(get.stdout), response);
+  const rpc: any = await f.rpc(app, [argv]); assert.deepEqual(rpc[0].result, response);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const file = join(f.root, "response.json"); await writeFile(file, JSON.stringify(response));
+  const update = await f.run(app, ["repositories", "proxy", "nuget", "update", "proxy", "--input-file", file, "--profile", "lab", "--json"]);
+  assert.equal(JSON.parse(update.stderr).error.code, "usage.invalid");
+});
