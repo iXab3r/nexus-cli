@@ -33,7 +33,7 @@ for (const [argv, path, value] of [
 });
 for (const [argv, path, method, input, status] of [
   [["anonymous", "set"], "security/anonymous", "put", { enabled: true, userId: "anonymous", realmName: "NexusAuthorizingRealm" }, 200],
-  [["realms", "set-active"], "security/realms/active", "put", ["NexusAuthorizingRealm", "NuGetApiKey"], 200],
+  [["realms", "set-active"], "security/realms/active", "put", ["NexusAuthorizingRealm", "NuGetApiKey"], 204],
   [["roles", "create"], "security/roles", "post", role, 200],
   [["roles", "update", "owned"], "security/roles/owned", "put", role, 204],
   [["users", "create"], "security/users", "post", { userId: user.userId, firstName: user.firstName, lastName: user.lastName, emailAddress: user.emailAddress, status: user.status, roles: user.roles, password: "SYNTHETIC_USER_PASSWORD" }, 200],
@@ -87,7 +87,7 @@ test("#677 Default Role setter preserves other capabilities and source identity"
     http.get(base + "capabilities/types", () => HttpResponse.json([{ id: "defaultrole" }])),
     http.get(base + "capabilities", () => HttpResponse.json([{ id: "unrelated", type: "other", properties: { untouched: "yes" } }, current])),
     http.get(base + "security/realms/active", () => HttpResponse.json(["NexusAuthorizingRealm", "DefaultRole"])),
-    http.put(base + "capabilities/actual-cap", async ({ request }) => { writes++; assert.deepEqual(await request.json(), { ...current, enabled: false, properties: { role: "new" } }); return new HttpResponse(null, { status: 200 }); }));
+    http.put(base + "capabilities/actual-cap", async ({ request }) => { writes++; assert.deepEqual(await request.json(), { ...current, enabled: false, properties: { role: "new" } }); return new HttpResponse(null, { status: 204 }); }));
   await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
   const file = join(f.root, "role.json"); await writeFile(file, JSON.stringify({ enabled: false, role: "new" }));
   const argv = ["security", "default-role", "set", "--input-file", file, "--profile", "lab"];
@@ -106,4 +106,50 @@ test("#677 password replacement uses protected input and native text body", asyn
   const file = join(f.root, "password.json"); await writeFile(file, JSON.stringify({ password: 'SYNTHETIC_"PASSWORD' }), { mode: 0o600 });
   const r: any = await f.rpc(app, [["security", "users", "change-password", "owned", "--credentials-file", file, "--profile", "lab"]]);
   assert.equal(r[0].result?.acknowledged, true, JSON.stringify(r)); assert.equal(calls, 1); assert.doesNotMatch(JSON.stringify(r), /SYNTHETIC_/);
+});
+
+// Actual 3.97 resource return types, independent of generated Swagger defaults:
+// realms and capability update return void (204); anonymous/capability create return DTO (200).
+for (const kind of ["realms", "default-update", "default-create", "anonymous"] as const)
+for (const status of [200, 201, 202, 204, 401, 403]) test(`#677 source status ${kind} HTTP ${status} across output modes`, async t => {
+  const expected = kind === "realms" || kind === "default-update" ? 204 : 200;
+  const existing = { id: "owned-cap", type: "defaultrole", enabled: true, active: true, properties: { role: "old" } };
+  const input = kind === "realms" ? ["NexusAuthorizingRealm", "NuGetApiKey"] : kind === "anonymous"
+    ? { enabled: false, userId: "anonymous", realmName: "NexusAuthorizingRealm" } : { enabled: false, role: "owned" };
+  const path = kind === "realms" ? "security/realms/active" : kind === "anonymous" ? "security/anonymous" : "capabilities" + (kind === "default-update" ? "/owned-cap" : "");
+  let writes = 0;
+  const handler = async ({ request }: { request: Request }) => {
+    writes++;
+    assert.deepEqual(await request.json(), kind === "default-update" ? { ...existing, enabled: false, properties: { role: "owned" } }
+      : kind === "default-create" ? { type: "defaultrole", enabled: false, properties: { role: "owned" } } : input);
+    return new HttpResponse(null, { status });
+  };
+  const { fixture: f, app } = await offlineCli(t,
+    http.get(base + "capabilities/types", () => HttpResponse.json([{ id: "defaultrole" }])),
+    http.get(base + "capabilities", () => HttpResponse.json(kind === "default-create" ? [] : [existing])),
+    http.get(base + "security/realms/active", () => HttpResponse.json(["NexusAuthorizingRealm"])),
+    (kind === "default-create" ? http.post : http.put)(base + path, handler));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const file = join(f.root, "status-body.json"); await writeFile(file, JSON.stringify(input), { mode: 0o600 });
+  const call = ["security", ...(kind === "realms" ? ["realms", "set-active"] : kind === "anonymous" ? ["anonymous", "set"] : ["default-role", "set"]), "--input-file", file, "--profile", "lab"];
+  const human = await f.run(app, call);
+  const json = await f.run(app, [...call, "--json"]);
+  const rpc: any = await f.rpc(app, [call]);
+  assert.equal(writes, 3, "Each invocation must issue exactly one mutation, without retry");
+  assert.equal(human.exitCode, status === expected ? 0 : 1);
+  assert.equal(json.exitCode, status === expected ? 0 : 1);
+  if (status === expected) {
+    assert.equal(JSON.parse(json.stdout).acknowledged, true);
+    assert.equal(rpc[0].result?.acknowledged, true);
+  } else {
+    const code = status < 300 ? "nexus.mutation.acknowledgementUnknown" : "http.rejected";
+    assert.equal(JSON.parse(json.stderr).error.code, code);
+    assert.ok(JSON.stringify(rpc).includes(code));
+    assert.equal(json.stdout, "");
+    if (status < 300) {
+      assert.match(human.stderr, /[Rr]econcile/);
+      assert.doesNotMatch(human.stderr, /rejected/i);
+    }
+  }
 });
