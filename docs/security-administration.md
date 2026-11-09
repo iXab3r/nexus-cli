@@ -55,3 +55,36 @@ Updates replace supplied settings, are not atomic with earlier observations and 
 transport may leave a mutation committed. Record owned identities before uncertain creates, establish
 absence first, and retain exact cleanup/recovery records until the outcome is independently known.
 Service commands do not consume stdin; Core's profile/auth credential stdin remains unchanged.
+
+## Mutation acknowledgments on Nexus 3.97.0-13
+
+The active-realms PUT and existing Default Role capability PUT acknowledge HTTP **204**.
+Anonymous PUT and new Default Role capability POST acknowledge HTTP **200**. The CLI
+requires the exact operation status; an unexpected 2xx fails with
+`nexus.mutation.acknowledgementUnknown`, stating that remote changes may have occurred
+and state must be reconciled before retrying. It does not retry or report that response
+as a refusal. A subsequent read can establish the current settings without replaying the write.
+
+This overrides misleading generated Swagger defaults using the official resource return contracts:
+[RealmApiResource.setActiveRealms](https://github.com/sonatype/nexus-public/blob/76b8303954ef1296507631aaabb69f980069a163/public/selfhosted/components/api/nexus-api-rest-selfhosted/src/main/java/org/sonatype/nexus/api/rest/selfhosted/security/realm/RealmApiResource.java)
+returns void after setting the ordered IDs;
+[AnonymousAccessApiResource.update](https://github.com/sonatype/nexus-public/blob/76b8303954ef1296507631aaabb69f980069a163/public/selfhosted/components/api/nexus-api-rest-selfhosted/src/main/java/org/sonatype/nexus/api/rest/selfhosted/security/anonymous/AnonymousAccessApiResource.java)
+returns a settings DTO. Under the [Jakarta REST return-type contract](https://jakarta.ee/specifications/restful-ws/3.1/jakarta-restful-ws-spec-3.1.html#resource_method_return_type),
+synchronous void returns no content/204; a non-null DTO returns 200.
+
+The same official 3.97.0-13 image pinned in [the key protocol](nuget-key-protocol.md)
+contains `nexus-api-rest-selfhosted-3.97.0-13.jar`
+(SHA256 `5b68866a4c345b337be0c40a324d365503bc719e77ad390ac7260c83c05ace7d`)
+and `nexus-api-rest-selfhosted-private-3.97.0-13.jar`
+(SHA256 `859617b568d9e98aa074ae23604a3707b5f45f285c61483014d98b02ff722d05`).
+Their bytecode confirms the realms/anonymous return types and proprietary
+`CapabilityResource.update(String, CapabilityDTO): void` versus
+`CapabilityResource.create(CapabilityDTO): CapabilityDTO`.
+
+Sibling status audit: user and role creates return DTO/200; user/role updates,
+password replacement, selector create/update and security deletes return void/204.
+Repository privilege creates explicitly return 201, updates return void/204.
+Those existing statuses remain unchanged. Offline command-tree regressions exercise
+expected statuses, unexpected 200/201/202/204 and 401/403 across human, JSON and RPC,
+including exactly one mutation per invocation. This source contract does not record
+a new production status observation.

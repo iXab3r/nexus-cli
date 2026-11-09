@@ -56,6 +56,13 @@ export async function mutate(
   }
   // Cancellation can await an unread cloned stream; acknowledgment needs only status.
   void response.body?.cancel().catch(() => undefined);
+  if (response.status !== expectedStatus && response.status >= 200 && response.status < 300)
+    throw new CliError(
+      operationContext(diagnostic.operation, diagnostic.repository) +
+        ": Nexus returned unexpected success HTTP " + response.status +
+        "; the expected acknowledgment was not received. Remote changes may have occurred. Reconcile state before retrying.",
+      { code: "nexus.mutation.acknowledgementUnknown" },
+    );
   if (response.status !== expectedStatus)
     throw new HttpError(
       response.status,

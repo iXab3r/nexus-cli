@@ -77,7 +77,7 @@ export const securityCommand = command("security", "Manage Nexus security", [
     command("set-active", "Replace the ordered realm list", async ({ options }, c) => {
       const body = await inputDocument(c, options.inputFile);
       if (!Array.isArray(body) || !body.every(v => typeof v === "string")) usage("Supply an ordered JSON array of realm IDs.");
-      await mutate(c, "security/realms/active", "PUT", JSON.stringify(body), 200, { operation: "Configure Nexus realms" }); return { acknowledged: true };
+      await mutate(c, "security/realms/active", "PUT", JSON.stringify(body), 204, { operation: "Configure Nexus realms" }); return { acknowledged: true };
     }, { permission: Permission.Update, options: inputOption, view: record }),
   ]),
   command("default-role", "Manage the authenticated default role", [
@@ -88,7 +88,7 @@ export const securityCommand = command("security", "Manage Nexus security", [
       const { cap, observation } = await defaultRole(c);
       if (observation.state === "unsupported") throw new CliError("Default Role capability is unavailable on this Nexus installation.", { code: "nexus.defaultRole.unsupported" });
       const request = cap ? { ...cap, enabled: body.enabled, properties: { ...cap.properties, role: body.role } } : { type: "defaultrole", enabled: body.enabled, properties: { role: body.role } };
-      await mutate(c, "capabilities" + (cap ? "/" + pathSegment(cap.id) : ""), cap ? "PUT" : "POST", JSON.stringify(request), 200, { operation: "Configure Default Role", redactions: dtoRedactions(request) });
+      await mutate(c, "capabilities" + (cap ? "/" + pathSegment(cap.id) : ""), cap ? "PUT" : "POST", JSON.stringify(request), cap ? 204 : 200, { operation: "Configure Default Role", redactions: dtoRedactions(request) });
       return { capabilityId: cap?.id ?? null, acknowledged: true };
     }, { permission: Permission.Update, options: inputOption, view: record }),
   ]),
