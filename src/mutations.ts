@@ -25,7 +25,7 @@ export async function mutate(
   method: string,
   body?: FormData | string,
   expectedStatus = 204,
-  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven"; redactions?: string[] } = { operation: "Mutate Nexus metadata" },
+  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven"; redactions?: string[]; contentType?: string } = { operation: "Mutate Nexus metadata" },
 ) {
   const raw =
     c.profile.values.authMode === "anonymous"
@@ -33,7 +33,7 @@ export async function mutate(
       : await c.secrets.require("credentials");
   const headers: Record<string, string> = { Accept: "application/json" };
   if (raw) headers.Authorization = authorization(raw);
-  if (typeof body === "string") headers["Content-Type"] = "application/json";
+  if (typeof body === "string") headers["Content-Type"] = diagnostic.contentType ?? "application/json";
   const url = String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path;
   let response: Response;
   try {

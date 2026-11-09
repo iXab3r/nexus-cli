@@ -1,3 +1,4 @@
+import { securityCommand } from "./security.js";
 import { repositoryFormats } from "./repository-administration.js";
 import { downloadCommand } from "./downloads.js";
 import { hostedCommand } from "./hosted.js";
@@ -70,6 +71,7 @@ export function createDefinition(): CliDefinition {
     permissions: {},
     commands: [
       ...readCommands,
+      securityCommand,
       command("content", "Retrieve known repository content", [downloadCommand(false, true)]),
       blobstoresCommand,
       formatsCommand,

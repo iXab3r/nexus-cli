@@ -48,8 +48,8 @@ try {
     source = join(temp, packed.filename);
   }
   const members = run("tar", ["-tzf", source]).trim().split("\n");
-  assert.deepEqual(members.sort(), ["README.md", "dist/src/administration-input.js", "dist/src/repository-administration.js", "dist/src/repository-schemas.js", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/metadata.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"].map(path => "package/" + path).sort());
-  console.log("Archive allowlist passed (18 files). Installing dependencies; this phase may use npm network access.");
+  assert.deepEqual(members.sort(), ["README.md", "dist/src/administration-input.js", "dist/src/nexus-dto.js", "dist/src/security.js", "dist/src/security-schemas.js", "dist/src/nuget-key.js", "dist/src/repository-administration.js", "dist/src/repository-schemas.js", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/metadata.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"].map(path => "package/" + path).sort());
+  console.log("Archive allowlist passed (22 files). Installing dependencies; this phase may use npm network access.");
   npm(["install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", source]);
   const installed = join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@eyeauras", "nexus-cli");
   const installedMetadata = JSON.parse(await readFile(join(installed, "package.json"), "utf8"));
@@ -110,6 +110,22 @@ globalThis.fetch = async (input, init = {}) => {
   return existingFetch(input,init);
 };
 `, {flag: "a"});
+  const typedRepository = { name: "synthetic-hosted", online: true, storage: { blobStoreName: "default", strictContentTypeValidation: true, writePolicy: "ALLOW_ONCE" } };
+  await writeFile(guard, `
+const distributionFetch = globalThis.fetch;
+globalThis.fetch = async (input, init = {}) => {
+  const url = new URL(String(input));
+  if (url.pathname.endsWith("/repositories/npm/hosted/synthetic-hosted")) return Response.json(${JSON.stringify(typedRepository)});
+  if (url.pathname.endsWith("/repositories/npm/hosted") && init.method === "POST") {
+    require("node:assert/strict").deepEqual(JSON.parse(init.body), ${JSON.stringify(typedRepository)});
+    return new Response(null, {status:201});
+  }
+  if (url.pathname.endsWith("/security/roles/synthetic-role")) return Response.json({id:"synthetic-role", name:"Synthetic", roles:["parent"], privileges:["custom"]});
+  if (url.pathname.endsWith("/service/extdirect")) return Response.json({type:"rpc",tid:1,action:"rapture_Security",method:"authenticationToken",result:"SYNTHETIC_TICKET"});
+  if (url.pathname.endsWith("/internal/nuget-api-key")) return Response.json({apiKey:"SYNTHETIC_KEY"});
+  return distributionFetch(input, init);
+};
+`, {flag:"a"});
   // Load the installed native binding, but forbid OS credential access in this offline smoke.
   const secrets = join(temp, "secrets.mjs");
   await writeFile(secrets, `
@@ -275,6 +291,21 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   const create = [...hosted, "create", "releases", "--blob-store", "existing", "--write-policy", "ALLOW_ONCE", "--online", "true", "--strict-content-type-validation", "true", "--profile", "public"];
   assert.equal(JSON.parse(invoke([...create, "--json"])).acknowledged, true);
   assert.match(invoke(create), /releases/);
+
+  const distributionInput = join(temp, "distribution.json");
+  await writeFile(distributionInput, JSON.stringify(typedRepository), {mode:0o600});
+  const typedCreate = ["repositories", "hosted", "npm", "create", "--input-file", distributionInput, "--profile", "public"];
+  assert.equal(JSON.parse(invoke([...typedCreate, "--json"])).acknowledged, true);
+  assert.deepEqual(JSON.parse(invoke(["repositories", "hosted", "npm", "get", typedRepository.name, "--profile", "public", "--json"])), typedRepository);
+  assert.deepEqual(JSON.parse(invoke(["security", "roles", "get", "synthetic-role", "--profile", "public", "--json"])).roles, ["parent"]);
+  if (!windows) {
+    const keyCredentials = join(temp, "key-credentials.json"), keyOutput = join(temp, "key.json");
+    await writeFile(keyCredentials, JSON.stringify({username:"synthetic-publisher",password:"SYNTHETIC_PASSWORD"}), {mode:0o600});
+    const result = JSON.parse(invoke(["security", "nuget-api-key", "export", "--user-id", "synthetic-publisher", "--credentials-file", keyCredentials, "--output", keyOutput, "--profile", "public", "--json"]));
+    assert.equal(result.exported, true); assert.equal(JSON.stringify(result).includes("SYNTHETIC_KEY"), false);
+    assert.deepEqual(JSON.parse(await readFile(keyOutput,"utf8")), {userId:"synthetic-publisher",apiKey:"SYNTHETIC_KEY"});
+  }
+  console.log("Installed distribution repository, security and protected key handoff passed offline.");
 
   invoke(["profile", "configure", "denied", "--url", "https://nexus.example.test/denied/context", "--auth-mode", "anonymous"]);
   invoke(["permissions", "grant", "Update", "--profile", "denied"]);

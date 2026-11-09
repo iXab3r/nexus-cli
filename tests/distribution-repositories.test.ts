@@ -145,3 +145,43 @@ test("#677 malformed required upstream URL fails before projection", async t => 
   const r = await f.run(app, ["repositories", "proxy", "npm", "get", "proxy", "--profile", "lab", "--json"]);
   assert.equal(JSON.parse(r.stderr).error.code, "nexus.decodeFailed");
 });
+
+test("#677 CLI-only replay provisions and reconciles 28 synthetic repositories", async t => {
+  const state = new Map<string, any>();
+  const { fixture: f, app } = await offlineCli(t, http.all(/^https:\/\/nexus\.example\.test\/service\/rest\/v1\/repositories\/(cargo|nuget|npm|docker)\/(hosted|proxy|group)(\/[^/]+)?$/, async ({ request }) => {
+    const parts = new URL(request.url).pathname.split("/");
+    const type = parts[6], name = parts[7];
+    if (request.method === "GET") return state.has(name) ? HttpResponse.json(state.get(name)) : new HttpResponse(null, { status: 404 });
+    const body: any = await request.json();
+    if (type === "group") assert.ok(body.group.memberNames.every((n: string) => state.has(n)));
+    state.set(body.name, body);
+    return new HttpResponse(null, { status: request.method === "POST" ? 201 : 204 });
+  }));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const path = join(f.root, "replay.json");
+  for (const format of ["cargo", "nuget", "npm", "docker"]) {
+    const definitions: {type: string; value: any}[] = [];
+    const storage = { blobStoreName: "default", strictContentTypeValidation: true };
+    const docker = format === "docker" ? { docker: { v1Enabled: false, forceBasicAuth: true, pathEnabled: true } } : {};
+    for (const scope of ["public", "shared", "internal"]) definitions.push({ type: "hosted", value: { name: `${format}-${scope}-hosted`, online: true, storage: { ...storage, writePolicy: "ALLOW_ONCE" }, ...docker } });
+    const proxy = { name: `${format}-proxy`, online: true, storage, proxy: { remoteUrl: "https://upstream.example.test/index", contentMaxAge: 1440, metadataMaxAge: 1440 }, negativeCache: { enabled: true, timeToLive: 1440 }, httpClient: { blocked: false, autoBlock: true, connection: { timeout: 59, retries: 2, useTrustStore: true } }, ...docker, ...(format === "cargo" ? { cargo: { requireAuthentication: false } } : {}), ...(format === "nuget" ? { nugetProxy: { nugetVersion: "V3", queryCacheItemMaxAge: 3700 } } : {}), ...(format === "docker" ? { dockerProxy: { indexType: "HUB", cacheForeignLayers: false } } : {}) };
+    definitions.push({ type: "proxy", value: proxy });
+    const scopes = ["public", "shared", "internal"];
+    for (let i = 0; i < 3; i++) definitions.push({ type: "group", value: { name: `${format}-${scopes[i]}-group`, online: true, storage, group: { memberNames: [...scopes.slice(0, i + 1).reverse().map(scope => `${format}-${scope}-hosted`), proxy.name] }, ...docker, ...(format === "cargo" ? { cargo: { requireAuthentication: i > 0 } } : {}) } });
+    for (const { type, value } of definitions) {
+      await writeFile(path, JSON.stringify(value));
+      const argv = ["repositories", type, format];
+      assert.equal((await f.run(app, [...argv, "create", "--input-file", path, "--profile", "lab", "--json"])).exitCode, 0);
+      const read: any = await f.json(app, [...argv, "get", value.name, "--profile", "lab"]);
+      assert.deepEqual(read, value);
+      // Reconcile existing settings without losing unrelated supported fields.
+      await writeFile(path, JSON.stringify({ ...read, online: false }));
+      assert.equal((await f.run(app, [...argv, "update", value.name, "--input-file", path, "--profile", "lab", "--json"])).exitCode, 0);
+      assert.deepEqual(state.get(value.name), { ...value, online: false });
+    }
+  }
+  assert.equal(state.size, 28);
+  assert.equal(state.get("nuget-proxy").nugetProxy.queryCacheItemMaxAge, 3700);
+  assert.equal(state.get("nuget-proxy").httpClient.connection.timeout, 59);
+});

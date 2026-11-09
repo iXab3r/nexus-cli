@@ -454,3 +454,15 @@ and [product/source baseline](docs/product-contract.md).
 Secure-store and profile behavior follows
 [CliFactory 0.6.1](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/DESIGN.md).
 The offline secret-store substitute proves no platform keyring or live entitlement.
+
+## Distribution administration
+
+Cargo, NuGet, npm and Docker expose repository get/create/update for hosted, proxy and group
+repositories. See [repository administration](docs/distribution-administration.md) for complete
+JSON file inputs, ordered members and replacement/concurrency behavior.
+
+[Security administration](docs/security-administration.md) covers anonymous access, ordered realms,
+Default Role capabilities, users, roles, complete privileges and selected-content grants.
+[NuGet key handoff](docs/nuget-key-protocol.md) describes protected self-service export/revocation
+and its explicitly selected Nexus 3.97.0-13 internal protocol. These service mutations use finite
+files; Core profile/auth credential stdin is unchanged.

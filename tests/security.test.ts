@@ -79,3 +79,31 @@ for (const state of ["active", "disabled", "absent", "unsupported", "denied", "m
   if (state === "denied" || state === "multiple") assert.notEqual(r.exitCode, 0);
   else { assert.equal(r.exitCode, 0, r.stderr); assert.equal(JSON.parse(r.stdout).state, state); }
 });
+
+test("#677 Default Role setter preserves other capabilities and source identity", async t => {
+  const current = { id: "actual-cap", type: "defaultrole", enabled: true, active: true, notes: "Existing note", properties: { role: "old" } };
+  let writes = 0;
+  const { fixture: f, app } = await offlineCli(t,
+    http.get(base + "capabilities/types", () => HttpResponse.json([{ id: "defaultrole" }])),
+    http.get(base + "capabilities", () => HttpResponse.json([{ id: "unrelated", type: "other", properties: { untouched: "yes" } }, current])),
+    http.get(base + "security/realms/active", () => HttpResponse.json(["NexusAuthorizingRealm", "DefaultRole"])),
+    http.put(base + "capabilities/actual-cap", async ({ request }) => { writes++; assert.deepEqual(await request.json(), { ...current, enabled: false, properties: { role: "new" } }); return new HttpResponse(null, { status: 200 }); }));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  const file = join(f.root, "role.json"); await writeFile(file, JSON.stringify({ enabled: false, role: "new" }));
+  const argv = ["security", "default-role", "set", "--input-file", file, "--profile", "lab"];
+  assert.equal((await f.run(app, [...argv, "--json"])).exitCode, 1); assert.equal(writes, 0);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const r: any = await f.rpc(app, [argv]); assert.equal(r[0].result?.acknowledged, true, JSON.stringify(r)); assert.equal(writes, 1);
+});
+
+test("#677 password replacement uses protected input and native text body", async t => {
+  let calls = 0;
+  const { fixture: f, app } = await offlineCli(t, http.put(base + "security/users/owned/change-password", async ({ request }) => {
+    calls++; assert.equal(request.headers.get("content-type"), "text/plain"); assert.equal(await request.text(), 'SYNTHETIC_"PASSWORD'); return new HttpResponse(null, { status: 204 });
+  }));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const file = join(f.root, "password.json"); await writeFile(file, JSON.stringify({ password: 'SYNTHETIC_"PASSWORD' }), { mode: 0o600 });
+  const r: any = await f.rpc(app, [["security", "users", "change-password", "owned", "--credentials-file", file, "--profile", "lab"]]);
+  assert.equal(r[0].result?.acknowledged, true, JSON.stringify(r)); assert.equal(calls, 1); assert.doesNotMatch(JSON.stringify(r), /SYNTHETIC_/);
+});
