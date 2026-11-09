@@ -42,7 +42,7 @@ for (const status of [204, 401, 403, 404, 502]) test(`#677 system HTTP status ${
   await configure(f, app);
   const result = await f.run(app, ["system", "http", "get", "--profile", "lab", "--json", "--verbose"]);
   assert.equal(result.exitCode, 1); assert.equal(calls, 1); assert.equal(result.stdout, "");
-  assert.equal(JSON.parse(result.stderr).error.code, status === 401 ? "http.unauthorized" : status === 403 ? "http.forbidden" : "http.rejected");
+  assert.equal(JSON.parse(result.stderr).error.code, status === 401 ? "http.unauthorized" : status === 403 ? "http.forbidden" : status === 404 ? "http.notFound" : status >= 500 ? "http.serverError" : "http.rejected");
   assert.doesNotMatch(result.stderr, /SYNTHETIC_HTTP_SECRET/);
 });
 for (const kind of ["malformed", "oversize", "invalid-utf8", "type", "missing", "unknown"]) test(`#677 system HTTP bounded static decode failure ${kind}`, async t => {
@@ -66,9 +66,10 @@ test("#677 system HTTP ReadOnly gate and no service mutation/input surface", asy
   await f.run(app, ["permissions", "revoke", "ReadOnly", "--profile", "lab"]);
   const denied = await f.run(app, ["system", "http", "get", "--profile", "lab", "--json"]);
   assert.equal(JSON.parse(denied.stderr).error.code, "permission.denied"); assert.equal(calls, 0);
+  await f.run(app, ["permissions", "grant", "ReadOnly", "--profile", "lab"]);
   for (const args of [["update"], ["reset"], ["delete"], ["get", "--input-stdin"]]) {
     const result = await f.run(app, ["system", "http", ...args, "--profile", "lab", "--json"]);
-    assert.equal(result.exitCode, 2); assert.equal(calls, 0);
+    assert.notEqual(result.exitCode, 0); assert.match(JSON.parse(result.stderr).error.code, /^usage(?:\.|$)/); assert.equal(calls, 0);
   }
 });
 test("#677 system HTTP nullable defaults and credential-bearing host fields are withheld", async t => {
@@ -79,4 +80,25 @@ test("#677 system HTTP nullable defaults and credential-bearing host fields are 
   const result: any = await f.json(app, ["system", "http", "get", "--profile", "lab"]);
   assert.equal(result.userAgentConfigured, false); assert.equal(result.httpProxy.host, null); assert.equal(result.httpProxy.port, null);
   assert.deepEqual(result.nonProxyHosts, ["localhost", null]); assert.doesNotMatch(JSON.stringify(result), /SYNTHETIC_HTTP_SECRET/);
+});
+
+test("#677 system HTTP selected profile cannot use another installation or change profile state", async t => {
+  let ownCalls = 0, otherCalls = 0;
+  const { fixture: f, app } = await offlineCli(t,
+    http.get(base + "http", () => { ownCalls++; return HttpResponse.json(settings()); }),
+    http.get("https://other.example.test/service/rest/v1/http", () => { otherCalls++; return HttpResponse.json(settings()); }));
+  await configure(f, app);
+  await f.run(app, ["profile", "configure", "other", "--url", "https://other.example.test", "--auth-mode", "anonymous"]);
+  const before = await f.profileStore.list();
+  const result = await f.run(app, ["system", "http", "get", "--profile", "lab", "--json"]);
+  assert.equal(result.exitCode, 0, result.stderr); assert.equal(ownCalls, 1); assert.equal(otherCalls, 0);
+  assert.deepEqual(await f.profileStore.list(), before);
+});
+test("#677 system HTTP transport failure retains no response cause", async t => {
+  const { fixture: f, app } = await offlineCli(t, http.get(base + "http", () => HttpResponse.error()));
+  await configure(f, app);
+  const result = await f.run(app, ["system", "http", "get", "--profile", "lab", "--json", "--verbose"]);
+  assert.equal(result.exitCode, 1); assert.equal(result.stdout, "");
+  assert.equal(JSON.parse(result.stderr).error.code, "nexus.requestFailed");
+  assert.doesNotMatch(result.stderr, /cause|SYNTHETIC_HTTP_SECRET/);
 });

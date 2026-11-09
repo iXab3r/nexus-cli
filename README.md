@@ -14,6 +14,7 @@ printf '%s' '{"username":"synthetic-reader","password":"synthetic-password"}' | 
 nexus-cli profile configure public --url https://nexus.example.test --auth-mode anonymous
 nexus-cli auth status --profile lab
 nexus-cli status --profile lab
+nexus-cli system http get --profile lab --json
 nexus-cli repositories list --profile lab --json
 nexus-cli repositories get releases --profile lab
 nexus-cli auth logout --profile lab
@@ -466,3 +467,5 @@ Default Role capabilities, users, roles, complete privileges and selected-conten
 [NuGet key handoff](docs/nuget-key-protocol.md) describes protected self-service export/revocation
 and its explicitly selected Nexus 3.97.0-13 internal protocol. These service mutations use finite
 files; Core profile/auth credential stdin is unchanged.
+
+Global outbound HTTP diagnostics: see [the ReadOnly settings contract](docs/system-http.md).

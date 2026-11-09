@@ -48,8 +48,8 @@ try {
     source = join(temp, packed.filename);
   }
   const members = run("tar", ["-tzf", source]).trim().split("\n");
-  assert.deepEqual(members.sort(), ["README.md", "dist/src/administration-input.js", "dist/src/nexus-dto.js", "dist/src/security.js", "dist/src/security-schemas.js", "dist/src/nuget-key.js", "dist/src/repository-administration.js", "dist/src/repository-schemas.js", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/metadata.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"].map(path => "package/" + path).sort());
-  console.log("Archive allowlist passed (22 files). Installing dependencies; this phase may use npm network access.");
+  assert.deepEqual(members.sort(), ["README.md", "dist/src/system-http.js", "dist/src/administration-input.js", "dist/src/nexus-dto.js", "dist/src/security.js", "dist/src/security-schemas.js", "dist/src/nuget-key.js", "dist/src/repository-administration.js", "dist/src/repository-schemas.js", "dist/src/auth.js", "dist/src/bin.js", "dist/src/cli.js", "dist/src/client.js", "dist/src/diagnostics.js", "dist/src/discovery.js", "dist/src/downloads.js", "dist/src/hosted.js", "dist/src/maven-import.js", "dist/src/metadata.js", "dist/src/mutations.js", "dist/src/reads.js", "dist/src/search.js", "package.json"].map(path => "package/" + path).sort());
+  console.log("Archive allowlist passed (23 files). Installing dependencies; this phase may use npm network access.");
   npm(["install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", source]);
   const installed = join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "@eyeauras", "nexus-cli");
   const installedMetadata = JSON.parse(await readFile(join(installed, "package.json"), "utf8"));

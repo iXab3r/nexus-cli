@@ -1,3 +1,4 @@
+import { systemCommand } from "./system-http.js";
 import { securityCommand } from "./security.js";
 import { repositoryFormats } from "./repository-administration.js";
 import { downloadCommand } from "./downloads.js";
@@ -72,6 +73,7 @@ export function createDefinition(): CliDefinition {
     commands: [
       ...readCommands,
       securityCommand,
+      systemCommand,
       command("content", "Retrieve known repository content", [downloadCommand(false, true)]),
       blobstoresCommand,
       formatsCommand,
