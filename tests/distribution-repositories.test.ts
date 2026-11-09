@@ -311,3 +311,18 @@ for (const format of ["npm", "docker"] as const) test(`#677 3.97 ${format} proxy
   const result = await f.run(app, ["repositories", "proxy", format, "update", "proxy", "--input-file", file, "--profile", "lab", "--json"]);
   assert.equal(JSON.parse(result.stderr).error.code, "usage.invalid"); assert.equal(writes, 0);
 });
+
+for (const type of ["hosted", "group"] as const) test(`#677 3.97 Docker ${type} adapter null/default projection`, async t => {
+  const response = {
+    name: "owned", online: false, format: "docker", type,
+    storage: { blobStoreName: "default", strictContentTypeValidation: true, ...(type === "hosted" ? { writePolicy: "ALLOW_ONCE", latestPolicy: false } : {}) },
+    docker: { v1Enabled: false, forceBasicAuth: true, httpPort: null, httpsPort: null, subdomain: null, pathEnabled: true },
+    ...(type === "hosted" ? { cleanup: null, component: { proprietaryComponents: false } } : { group: { memberNames: ["owned-hosted", "owned-proxy"], writableMember: null } }),
+  };
+  const { fixture: f, app } = await offlineCli(t, http.get(`https://nexus.example.test/service/rest/v1/repositories/docker/${type}/owned`, () => HttpResponse.json(response)));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  const get = ["repositories", type, "docker", "get", "owned", "--profile", "lab"];
+  assert.equal((await f.run(app, get)).exitCode, 0);
+  assert.deepEqual(await f.json(app, get), response);
+  const rpc: any = await f.rpc(app, [get]); assert.deepEqual(rpc[0].result, response);
+});

@@ -1,6 +1,8 @@
 // Nexus 3.96.3-01 request DTOs, selected from docs/api/nexus-openapi.json.
 // Source SHA-256: 2d5261f26dd225103e886c0cb2becfa710b690a19e308a504cdd57a9293407ca
 // Descriptions/examples omitted; native fields and constraints retained.
+// Selected 3.97.0-13 extensions: NpmAttributes and Docker layerDownloadTimeoutMinutes.
+// Provenance and response/request differences: docs/distribution-administration.md.
 export const repositorySchemas: Record<string, any> = {
   "CargoHostedRepositoryApiRequest": {
     "required": [
@@ -523,8 +525,19 @@ export const repositorySchemas: Record<string, any> = {
       "routingRuleName": {
         "type": "string"
       },
+      "npm": {
+        "$ref": "#/components/schemas/NpmAttributes"
+      },
       "firewall": {
         "$ref": "#/components/schemas/FirewallAttributes"
+      }
+    }
+  },
+  "NpmAttributes": {
+    "type": "object",
+    "properties": {
+      "removeQuarantinedVersions": {
+        "type": "boolean"
       }
     }
   },
@@ -733,6 +746,12 @@ export const repositorySchemas: Record<string, any> = {
         "items": {
           "type": "string"
         }
+      },
+      "layerDownloadTimeoutMinutes": {
+        "type": "integer",
+        "format": "int32",
+        "minimum": 1,
+        "maximum": 1440
       },
       "ecrAuth": {
         "$ref": "#/components/schemas/EcrAuthAttributes"

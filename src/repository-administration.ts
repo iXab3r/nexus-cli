@@ -15,9 +15,9 @@ const view = recordView<any>({ fields: [
 export function repositoryFormats(type: string) {
   return ["cargo", "nuget", "npm", "docker"].map(format => {
     const schema = repositorySchemas[cap(format) + cap(type) + "RepositoryApiRequest"];
-    // 3.97 NugetApiRepositoryAdapter supplies HostedStorageAttributes for proxy
-    // observations, although its mutation DTO accepts only StorageAttributes.
-    const readSchema = format === "nuget" && type === "proxy" ? {
+    // 3.97 NuGet/npm/Docker adapters supply HostedStorageAttributes for proxy
+    // observations, although their mutation DTOs accept only StorageAttributes.
+    const readSchema = type === "proxy" && ["nuget", "npm", "docker"].includes(format) ? {
       ...schema, properties: { ...schema.properties, storage: {
         ...repositorySchemas.StorageAttributes,
         properties: { ...repositorySchemas.StorageAttributes.properties,
