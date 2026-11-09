@@ -143,7 +143,7 @@ for (const status of [200, 201, 202, 204, 401, 403]) test(`#677 source status ${
     assert.equal(JSON.parse(json.stdout).acknowledged, true);
     assert.equal(rpc[0].result?.acknowledged, true);
   } else {
-    const code = status < 300 ? "nexus.mutation.acknowledgementUnknown" : "http.rejected";
+    const code = status < 300 ? "nexus.mutation.acknowledgementUnknown" : status === 401 ? "http.unauthorized" : "http.forbidden";
     assert.equal(JSON.parse(json.stderr).error.code, code);
     assert.ok(JSON.stringify(rpc).includes(code));
     assert.equal(json.stdout, "");
