@@ -212,3 +212,102 @@ test("#682 NuGet proxy preserves response-only storage write policy", async t =>
   const update = await f.run(app, ["repositories", "proxy", "nuget", "update", "proxy", "--input-file", file, "--profile", "lab", "--json"]);
   assert.equal(JSON.parse(update.stderr).error.code, "usage.invalid");
 });
+
+function source397Proxy(format: "npm" | "docker"): Record<string, any> {
+  return {
+    name: "proxy", online: false, format, type: "proxy", url: "https://nexus.example.test/repository/proxy/",
+    storage: { blobStoreName: "default", strictContentTypeValidation: true, writePolicy: "ALLOW" },
+    cleanup: null,
+    proxy: { remoteUrl: "https://upstream.example.test/", contentMaxAge: 1440, metadataMaxAge: 1440, preserveEncodedCharacters: false },
+    negativeCache: { enabled: true, timeToLive: 1440 },
+    httpClient: { blocked: false, autoBlock: true, authentication: null, connection: {
+      retries: null, userAgentSuffix: null, timeout: null, enableCircularRedirects: false, enableCookies: false, useTrustStore: false,
+    } },
+    routingRuleName: null, replication: { preemptivePullEnabled: false, assetPathRegex: null },
+    ...(format === "npm" ? { npm: { removeQuarantinedVersions: false } } : {
+      docker: { v1Enabled: false, forceBasicAuth: true, httpPort: null, httpsPort: null, subdomain: null, pathEnabled: true },
+      dockerProxy: { indexType: "HUB", indexUrl: null, cacheForeignLayers: false, foreignLayerUrlWhitelist: null, ecrAuth: null, layerDownloadTimeoutMinutes: null },
+    }),
+  };
+}
+for (const format of ["npm", "docker"] as const) test(`#677 3.97 ${format} proxy GET and activation preserve writable settings`, async t => {
+  const response = source397Proxy(format);
+  const { format: _format, type: _type, url: _url, ...request } = structuredClone(response);
+  const { writePolicy: _writePolicy, ...storage } = request.storage;
+  const activation = { ...request, online: true, storage };
+  let writes = 0;
+  const route = `https://nexus.example.test/service/rest/v1/repositories/${format}/proxy`;
+  const { fixture: f, app } = await offlineCli(t,
+    http.get(route + "/proxy", () => HttpResponse.json(response)),
+    http.put(route + "/proxy", async ({ request }) => { writes++; assert.deepEqual(await request.json(), activation); return new HttpResponse(null, { status: 204 }); }));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  const get = ["repositories", "proxy", format, "get", "proxy", "--profile", "lab"];
+  assert.equal((await f.run(app, get)).exitCode, 0);
+  assert.deepEqual(await f.json(app, get), response);
+  const rpc: any = await f.rpc(app, [get]); assert.deepEqual(rpc[0].result, response);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const file = join(f.root, "activation.json"); await writeFile(file, JSON.stringify(activation));
+  const put = ["repositories", "proxy", format, "update", "proxy", "--input-file", file, "--profile", "lab"];
+  assert.equal((await f.run(app, put)).exitCode, 0);
+  assert.equal((await f.json(app, put) as any).acknowledged, true);
+  const putRpc: any = await f.rpc(app, [put]); assert.equal(putRpc[0].result?.acknowledged, true);
+  assert.equal(writes, 3);
+  // Observation-only hosted storage policy must not become a proxy deployment setting.
+  await writeFile(file, JSON.stringify({ ...activation, storage: response.storage }));
+  const invalid = await f.run(app, [...put, "--json"]);
+  assert.equal(JSON.parse(invalid.stderr).error.code, "usage.invalid"); assert.equal(writes, 3);
+});
+for (const flag of [false, true, null]) test(`#677 npm proxy canonical legacy toggle ${flag} reaches create and update`, async t => {
+  const { format: _format, type: _type, url: _url, ...body } = source397Proxy("npm");
+  const { writePolicy: _writePolicy, ...storage } = body.storage;
+  const input = { ...body, storage, npm: { removeQuarantinedVersions: flag } };
+  let writes = 0;
+  const handler = async ({ request }: { request: Request }) => { writes++; assert.deepEqual(await request.json(), input); return new HttpResponse(null, { status: request.method === "POST" ? 201 : 204 }); };
+  const route = "https://nexus.example.test/service/rest/v1/repositories/npm/proxy";
+  const { fixture: f, app } = await offlineCli(t, http.post(route, handler), http.put(route + "/proxy", handler));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const file = join(f.root, "npm.json"); await writeFile(file, JSON.stringify(input));
+  for (const action of [["create"], ["update", "proxy"]]) {
+    const result = await f.run(app, ["repositories", "proxy", "npm", ...action, "--input-file", file, "--profile", "lab", "--json"]);
+    assert.equal(result.exitCode, 0, result.stderr);
+  }
+  assert.equal(writes, 2);
+});
+for (const timeout of [1, 1440, 0, 1441, 1.5, "10"]) test(`#677 Docker proxy layer timeout native constraint ${timeout}`, async t => {
+  const observed = source397Proxy("docker");
+  const { format: _format, type: _type, url: _url, ...body } = observed;
+  const { writePolicy: _writePolicy, ...storage } = body.storage;
+  const input = { ...body, storage, dockerProxy: { ...body.dockerProxy, layerDownloadTimeoutMinutes: timeout } };
+  let writes = 0;
+  const { fixture: f, app } = await offlineCli(t, http.put("https://nexus.example.test/service/rest/v1/repositories/docker/proxy/proxy", async ({ request }) => {
+    writes++; assert.deepEqual(await request.json(), input); return new HttpResponse(null, { status: 204 });
+  }));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const file = join(f.root, "docker.json"); await writeFile(file, JSON.stringify(input));
+  const result = await f.run(app, ["repositories", "proxy", "docker", "update", "proxy", "--input-file", file, "--profile", "lab", "--json"]);
+  const valid = timeout === 1 || timeout === 1440;
+  assert.equal(result.exitCode, valid ? 0 : 2, result.stderr); assert.equal(writes, valid ? 1 : 0);
+});
+for (const format of ["npm", "docker"] as const) test(`#677 3.97 ${format} proxy rejects malformed observations and unknown mutation fields`, async t => {
+  const value: any = source397Proxy(format);
+  let writes = 0;
+  const route = `https://nexus.example.test/service/rest/v1/repositories/${format}/proxy`;
+  const { fixture: f, app } = await offlineCli(t, http.get(route + "/proxy", () => HttpResponse.json(value)), http.put(route + "/proxy", () => { writes++; return new HttpResponse(null, { status: 204 }); }));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  const get = ["repositories", "proxy", format, "get", "proxy", "--profile", "lab", "--json"];
+  value.storage.writePolicy = 42;
+  assert.equal(JSON.parse((await f.run(app, get)).stderr).error.code, "nexus.decodeFailed");
+  value.storage.writePolicy = "ALLOW";
+  if (format === "npm") value.npm.removeQuarantinedVersions = "false";
+  else value.dockerProxy.layerDownloadTimeoutMinutes = "10";
+  assert.equal(JSON.parse((await f.run(app, get)).stderr).error.code, "nexus.decodeFailed");
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  const { format: _format, type: _type, url: _url, ...body } = source397Proxy(format);
+  const { writePolicy: _writePolicy, ...storage } = body.storage;
+  const file = join(f.root, "unknown.json");
+  await writeFile(file, JSON.stringify({ ...body, storage, ...(format === "npm" ? { npm: { removeQuarantinedVersions: false, invented: true } } : { dockerProxy: { ...body.dockerProxy, invented: true } }) }));
+  const result = await f.run(app, ["repositories", "proxy", format, "update", "proxy", "--input-file", file, "--profile", "lab", "--json"]);
+  assert.equal(JSON.parse(result.stderr).error.code, "usage.invalid"); assert.equal(writes, 0);
+});
