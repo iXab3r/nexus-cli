@@ -1,3 +1,4 @@
+import { repositoryFormats } from "./repository-administration.js";
 import { downloadCommand } from "./downloads.js";
 import { hostedCommand } from "./hosted.js";
 import { blobstoresCommand, formatsCommand } from "./discovery.js";
@@ -92,6 +93,8 @@ export function createDefinition(): CliDefinition {
       ),
       command("repositories", "Inspect visible repositories", [
         hostedCommand,
+        command("proxy", "Manage proxy repositories", repositoryFormats("proxy")),
+        command("group", "Manage repository groups", repositoryFormats("group")),
         command(
           "list",
           "List visible repositories",

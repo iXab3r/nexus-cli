@@ -61,3 +61,33 @@ for (const format of ["cargo", "nuget", "npm", "docker"]) {
     });
   }
 }
+
+test("#677 typed configuration rejects malformed fields and redacts write-only secrets", async t => {
+  const base = {
+    name: "proxy", online: true,
+    storage: { blobStoreName: "default", strictContentTypeValidation: true },
+    proxy: { remoteUrl: "https://upstream.example.test", contentMaxAge: -1, metadataMaxAge: 0 },
+    negativeCache: { enabled: false, timeToLive: 0 },
+    httpClient: { authentication: { type: "username", username: "synthetic", password: "SYNTHETIC_SECRET", bearerToken: "SYNTHETIC_TOKEN" } },
+  };
+  let writes = 0;
+  const { fixture: f, app } = await offlineCli(t,
+    http.get("https://nexus.example.test/service/rest/v1/repositories/npm/proxy/proxy", () => HttpResponse.json(base)),
+    http.put("https://nexus.example.test/service/rest/v1/repositories/npm/proxy/proxy", () => { writes++; return new HttpResponse(null, { status: 204 }); }));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  const get = await f.run(app, ["repositories", "proxy", "npm", "get", "proxy", "--profile", "lab", "--json"]);
+  assert.equal(get.exitCode, 0, get.stderr);
+  assert.doesNotMatch(get.stdout + get.stderr, /SYNTHETIC_SECRET|SYNTHETIC_TOKEN/);
+  await f.run(app, ["permissions", "grant", "Update", "--profile", "lab"]);
+  for (const input of [
+    { ...base, online: "true" },
+    { ...base, name: "another" },
+    { ...base, storage: { ...base.storage, unknown: true } },
+    { ...base, httpClient: { connection: { retries: 1.1 } } },
+  ]) {
+    const r = await f.run(app, ["repositories", "proxy", "npm", "update", "proxy", "--input-stdin", "--profile", "lab", "--json"], { input: Readable.from([JSON.stringify(input)]) });
+    assert.notEqual(r.exitCode, 0);
+    assert.doesNotMatch(r.stdout + r.stderr, /SYNTHETIC_SECRET|SYNTHETIC_TOKEN/);
+  }
+  assert.equal(writes, 0);
+});
