@@ -4,14 +4,17 @@ Cargo, NuGet, npm and Docker each expose hosted, proxy and group settings:
 
 ```sh
 nexus-cli repositories proxy nuget get packages --json
-nexus-cli repositories proxy nuget create --input-stdin --json < repository.json
-nexus-cli repositories proxy nuget update packages --input-stdin --json < repository.json
+nexus-cli repositories proxy nuget create --input-file repository.json --json
+nexus-cli repositories proxy nuget update packages --input-file repository.json --json
 ```
+
+JSON files contain at most 64 KiB of UTF-8 text. Service commands do not consume stdin.
 
 The JSON input is the complete Nexus request DTO, including `name`. On update it must
 match the command argument. Known optional settings are preserved when supplied; unknown
 fields and invalid field types fail before a write. GET returns supported configuration,
-including ordered group members, without password/token fields. Response-only `format`,
+including ordered group members, without password/token fields. Returned URLs omit userinfo, queries and fragments;
+resupply any required protected upstream credentials separately when preparing input. Response-only `format`,
 `type` and `url` must be removed before using a GET result as mutation input.
 
 The request schemas come from the pinned 3.96.3-01 official OpenAPI in

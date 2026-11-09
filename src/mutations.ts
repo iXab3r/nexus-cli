@@ -25,7 +25,7 @@ export async function mutate(
   method: string,
   body?: FormData | string,
   expectedStatus = 204,
-  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven" } = { operation: "Mutate Nexus metadata" },
+  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven"; redactions?: string[] } = { operation: "Mutate Nexus metadata" },
 ) {
   const raw =
     c.profile.values.authMode === "anonymous"
@@ -49,7 +49,7 @@ export async function mutate(
         code: "nexus.mutation.outcomeUnknown",
         cause: diagnosticCause(
           cause,
-          [...resourceRedactions(url, readResource(path), diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
+          [...(diagnostic.redactions ?? []), ...resourceRedactions(url, readResource(path), diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
         ),
       },
     );

@@ -20,7 +20,7 @@ function validate(value: any, schema: any, read: boolean, required = true): any 
       if (!field) invalid(read);
       // Server responses may contain write-only masks; never expose these.
       if (read && field.writeOnly) continue;
-      out[key] = validate(item, field, read, schema.required?.includes(key) ?? false);
+      out[key] = read && /url$/i.test(key) && typeof item === "string" ? safeUrl(item) : validate(item, field, read, schema.required?.includes(key) ?? false);
     }
     return out;
   }
@@ -29,7 +29,7 @@ function validate(value: any, schema: any, read: boolean, required = true): any 
     return value.map(v => validate(v, schema.items, read));
   }
   if (schema.type === "integer") {
-    if (!Number.isSafeInteger(value) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity)) invalid(read);
+    if ((schema.format === "int32" && (value < -2147483648 || value > 2147483647)) || !Number.isSafeInteger(value) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity)) invalid(read);
   } else if (typeof value !== schema.type) invalid(read);
   if (schema.enum && !schema.enum.includes(value)) invalid(read);
   if (typeof value === "string" && (value.length < (schema.minLength ?? 0) || value.length > (schema.maxLength ?? Infinity) || (schema.pattern && !new RegExp(schema.pattern).test(value)))) invalid(read);
@@ -55,16 +55,21 @@ export function repositoryFormats(type: string) {
         const result = validate(settings, schema, true);
         return { ...result, ...(actualFormat === undefined ? {} : { format: actualFormat }), ...(actualType === undefined ? {} : { type: actualType }), ...(url === undefined ? {} : { url: safeUrl(url) }) };
       }, { permission: Permission.ReadOnly, view }),
-      ...["create", "update"].map(action => command(action === "create" ? "create" : "update <name>", action === "create" ? "Create a repository" : "Replace repository settings", async ({ args }, c) => {
-        const body = validate(await inputDocument(c), schema, false);
+      ...["create", "update"].map(action => command(action === "create" ? "create" : "update <name>", action === "create" ? "Create a repository" : "Replace repository settings", async ({ args, options }, c) => {
+        const body = validate(await inputDocument(c, options.inputFile), schema, false);
         if (action === "update" && body.name !== args.name) throw new CliError("Input name must match the repository name.", { code: "usage.invalid", exitCode: 2 });
-        await mutate(c, path + (action === "update" ? "/" + pathSegment(String(args.name)) : ""), action === "create" ? "POST" : "PUT", JSON.stringify(body), action === "create" ? 201 : 204);
+        await mutate(c, path + (action === "update" ? "/" + pathSegment(String(args.name)) : ""), action === "create" ? "POST" : "PUT", JSON.stringify(body), action === "create" ? 201 : 204, { operation: "Configure Nexus repository", redactions: strings(body) });
         return { name: body.name, acknowledged: true };
-      }, { permission: Permission.Update, options: [{ flags: "--input-stdin", description: "Read repository settings as JSON", required: true }], view })),
+      }, { permission: Permission.Update, options: [{ flags: "--input-file <json>", description: "Read repository settings from a file", required: true }], view })),
     ]);
   });
 }
 function safeUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
   try { const u = new URL(value); u.username = ""; u.password = ""; u.search = ""; u.hash = ""; return u.href; } catch { return null; }
+}
+
+function strings(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  return value && typeof value === "object" ? Object.values(value).flatMap(strings) : [];
 }

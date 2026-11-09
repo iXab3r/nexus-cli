@@ -1,33 +1,32 @@
+import { open } from "node:fs/promises";
+import { constants } from "node:fs";
+import { resolve } from "node:path";
 import { CliError, type CommandContext } from "@eyeauras/cli-factory";
 
-/** Finite invocation input, consumed only after Core permission admission. */
-export async function inputDocument(c: CommandContext): Promise<unknown> {
-  if (c.io.input.readableEnded || c.io.input.destroyed) throw new CliError("JSON stdin is unavailable through this transport.", { code: "usage.invalid", exitCode: 2 });
-  const input = c.io.input;
-  const text = await new Promise<string>((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    let bytes = 0;
-    const finish = (error?: Error) => {
-      input.pause();
-      input.off("data", data); input.off("end", end); input.off("error", failed); input.off("close", closed);
-      c.signal.removeEventListener("abort", aborted);
-      if (error) reject(error); else resolve(Buffer.concat(chunks).toString("utf8"));
-    };
-    const data = (value: string | Buffer) => {
-      const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
-      bytes += chunk.length;
-      if (bytes > 65536) finish(new CliError("JSON input must not exceed 64 KiB.", { code: "usage.invalid", exitCode: 2 }));
-      else chunks.push(chunk);
-    };
-    const end = () => finish();
-    const failed = () => finish(new CliError("Could not read JSON input.", { code: "usage.invalid", exitCode: 2 }));
-    const closed = () => failed();
-    const aborted = () => finish(new DOMException("Input cancelled.", "AbortError"));
-    input.on("end", end); input.on("error", failed); input.on("close", closed);
-    c.signal.addEventListener("abort", aborted, { once: true });
-    input.on("data", data);
-    if (c.signal.aborted) aborted();
-  });
-  try { return JSON.parse(text); }
-  catch { throw new CliError("Supply a JSON document on stdin.", { code: "usage.invalid", exitCode: 2 }); }
+/** File bodies avoid consuming JSON-RPC's protocol stdin. */
+export async function inputDocument(c: CommandContext, path: unknown, protectedFile = false): Promise<unknown> {
+  if (typeof path !== "string" || !path) throw new CliError("Supply a JSON input file.", { code: "usage.invalid", exitCode: 2 });
+  let file;
+  try {
+    file = await open(resolve(c.cwd, path), constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | constants.O_NONBLOCK);
+    const stat = await file.stat();
+    if (!stat.isFile() || (protectedFile && (process.platform === "win32" || stat.uid !== process.getuid?.() || (stat.mode & 0o077) !== 0)))
+      throw new CliError("Input requires an owner-only regular file.", { code: "nexus.input.unsafe" });
+    if (stat.size > 65536) throw new CliError("JSON input must not exceed 64 KiB.", { code: "nexus.input.tooLarge" });
+    c.signal.throwIfAborted();
+    const bytes = Buffer.alloc(65537);
+    let count = 0;
+    while (count < bytes.length) {
+      c.signal.throwIfAborted();
+      const read = await file.read(bytes, count, bytes.length - count, null);
+      if (!read.bytesRead) break;
+      count += read.bytesRead;
+    }
+    if (count > 65536) throw new CliError("JSON input must not exceed 64 KiB.", { code: "nexus.input.tooLarge" });
+    try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, count))); }
+    catch { throw new CliError("Supply a valid UTF-8 JSON document.", { code: "usage.invalid", exitCode: 2 }); }
+  } catch (cause) {
+    if (cause instanceof CliError) throw cause;
+    throw new CliError("Could not read the input file.", { code: "nexus.input.unavailable" });
+  } finally { await file?.close(); }
 }

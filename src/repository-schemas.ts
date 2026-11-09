@@ -145,10 +145,12 @@ export const repositorySchemas: Record<string, any> = {
         "type": "string"
       },
       "contentMaxAge": {
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       },
       "metadataMaxAge": {
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       },
       "preserveEncodedCharacters": {
         "type": "boolean"
@@ -166,7 +168,8 @@ export const repositorySchemas: Record<string, any> = {
         "type": "boolean"
       },
       "timeToLive": {
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       }
     }
   },
@@ -193,7 +196,8 @@ export const repositorySchemas: Record<string, any> = {
       "retries": {
         "maximum": 10,
         "minimum": 0,
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       },
       "userAgentSuffix": {
         "type": "string"
@@ -201,7 +205,8 @@ export const repositorySchemas: Record<string, any> = {
       "timeout": {
         "maximum": 3600,
         "minimum": 1,
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       },
       "enableCircularRedirects": {
         "type": "boolean"
@@ -402,7 +407,8 @@ export const repositorySchemas: Record<string, any> = {
     "type": "object",
     "properties": {
       "queryCacheItemMaxAge": {
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       },
       "nugetVersion": {
         "type": "string",
@@ -633,10 +639,12 @@ export const repositorySchemas: Record<string, any> = {
         "type": "boolean"
       },
       "httpPort": {
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       },
       "httpsPort": {
-        "type": "integer"
+        "type": "integer",
+        "format": "int32"
       },
       "subdomain": {
         "type": "string"
