@@ -20,6 +20,38 @@ records owner 2FA approval, successful registry-installed checks and the verifie
 archive/manifest at source commit `7b2352e627740c13668aebad33e65163220234e2`.
 Future stages still require owner approval on npm before publication.
 
+## 0.3.0 release scope
+
+The next release candidate is **0.3.0**, containing accepted M10 and M11:
+exact optional repository sizes, sanitized repository/upstream URL projections,
+and complete upload-field explanations and choices. These extend existing commands;
+they do not add another authentication protocol or package-format uploader.
+The published version remains 0.2.0 until the candidate's verified npm stage receives
+owner 2FA approval and VerifyRegistry completes.
+
+The release checks exercise these existing user workflows:
+
+| Workflow | Verification boundary |
+|---|---|
+| Noninteractive CI | Installed Bash recipe: isolated profile, stdin Basic pair, Update gate, raw upload, digest-checked download, fail-fast behavior and local logout |
+| Authentication | Basic and explicit anonymous modes, profile isolation, secure-store failure, rejected credentials and redacted errors |
+| Find and download | Component/asset reads, scalar search selectors, bounded pagination, asset/search/direct-content transfers and safe file publication |
+| Publish | Raw REST upload and Maven generated-POM/original-POM companion workflows; acknowledgment and unknown-outcome handling |
+| Automation output | The shared command tree in human, JSON and persistent JSON-RPC modes |
+| New metadata | Repository sizes/upstream projection and complete upload-field metadata in the installed executable |
+
+Service tests are offline with synthetic HTTP and secret-store boundaries. They do
+not certify a live Nexus version/edition or provision a runner's native secure store.
+Linux CI needs a working Secret Service/keyring session; there is no plaintext
+credential fallback. Native npm/NuGet/Maven/Docker/Python package-manager protocols
+remain the responsibility of those clients; REST publication here supports raw/Maven.
+
+Local release qualification uses Node 24 and the pinned npm version, matching CI's
+Node major. Earlier full installed-package attempts on Node 26 timed out at help,
+although compiled help and an isolated installed help/version probe succeeded.
+That harness limitation remains unqualified and is not a claim of a failing or
+passing full installed Node 26 workflow.
+
 The manifest and lock now pin published Core **0.6.1**, with instruction links at
 release commit `c313194f8cd22547dae6ae8693a2771f3a5066f0`. Its freshly downloaded
 registry archive matches the official GitHub release archive and manifest: SHA-1
