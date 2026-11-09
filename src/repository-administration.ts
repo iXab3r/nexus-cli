@@ -20,7 +20,8 @@ function validate(value: any, schema: any, read: boolean, required = true): any 
       if (!field) invalid(read);
       // Server responses may contain write-only masks; never expose these.
       if (read && field.writeOnly) continue;
-      out[key] = read && /url$/i.test(key) && typeof item === "string" ? safeUrl(item) : validate(item, field, read, schema.required?.includes(key) ?? false);
+      const checked = validate(item, field, read, schema.required?.includes(key) ?? false);
+      out[key] = read && /url$/i.test(key) && typeof checked === "string" ? safeUrl(checked) : checked;
     }
     return out;
   }
@@ -70,6 +71,17 @@ function safeUrl(value: unknown): string | null {
 }
 
 function strings(value: unknown): string[] {
-  if (typeof value === "string") return [value];
+  if (typeof value === "string") {
+    const redactions = [value];
+    try {
+      const url = new URL(value);
+      for (const part of [url.username, url.password, ...url.searchParams.values(), url.hash.slice(1)]) {
+        if (!part) continue;
+        redactions.push(part);
+        try { redactions.push(decodeURIComponent(part)); } catch { /* Preserve encoded spelling. */ }
+      }
+    } catch { /* Non-URL DTO fields remain literal redactions. */ }
+    return redactions;
+  }
   return value && typeof value === "object" ? Object.values(value).flatMap(strings) : [];
 }

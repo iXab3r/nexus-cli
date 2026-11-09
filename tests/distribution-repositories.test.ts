@@ -124,17 +124,24 @@ test("#677 RPC file mutations preserve the next request and reject stdin", async
   assert.equal(writes, 1);
 });
 
-for (const encoding of ["raw", "json", "uri"]) test(`#677 DTO secret diagnostics ${encoding}`, async t => {
+for (const encoding of ["raw", "json", "uri", "url-password", "url-query"]) test(`#677 DTO secret diagnostics ${encoding}`, async t => {
   const secret = 'SYNTHETIC_"PRIVATE value';
   const spell = encoding === "json" ? JSON.stringify(secret).slice(1, -1) : encoding === "uri" ? encodeURIComponent(secret) : secret;
   const f = await createCliFixture(t, { applicationId: "nexus-cli", profiles: [{ name: "lab", values: { url: "https://nexus.example.test", authMode: "anonymous" }, permissions: ["Update"] }] });
   const app = f.createApplication(runtime => createCli({ ...createDefinition(), runtime: { ...runtime, fetch: async () => { throw new Error("Synthetic socket failure " + spell); } } }));
   const path = join(f.root, "body.json");
-  await writeFile(path, JSON.stringify({ name: "proxy", online: true, storage: { blobStoreName: "default", strictContentTypeValidation: true }, proxy: { remoteUrl: "https://upstream.example.test", contentMaxAge: -1, metadataMaxAge: 0 }, negativeCache: { enabled: false, timeToLive: 0 }, httpClient: { authentication: { type: "username", password: secret } } }));
+  await writeFile(path, JSON.stringify({ name: "proxy", online: true, storage: { blobStoreName: "default", strictContentTypeValidation: true }, proxy: { remoteUrl: encoding === "url-password" ? "https://synthetic:" + encodeURIComponent(secret) + "@upstream.example.test" : encoding === "url-query" ? "https://upstream.example.test?token=" + encodeURIComponent(secret) : "https://upstream.example.test", contentMaxAge: -1, metadataMaxAge: 0 }, negativeCache: { enabled: false, timeToLive: 0 }, httpClient: { authentication: { type: "username", ...(encoding.startsWith("url-") ? {} : { password: secret }) } } }));
   const argv = ["repositories", "proxy", "npm", "create", "--input-file", path, "--profile", "lab", "--verbose"];
   const r = await f.run(app, [...argv, "--json"]);
   assert.equal(JSON.parse(r.stderr).error.code, "nexus.mutation.outcomeUnknown");
   assert.ok(!(r.stdout + r.stderr).includes("PRIVATE"));
   const rpc = JSON.stringify(await f.rpc(app, [argv]));
   assert.ok(!rpc.includes("PRIVATE"));
+});
+
+test("#677 malformed required upstream URL fails before projection", async t => {
+  const { fixture: f, app } = await offlineCli(t, http.get("https://nexus.example.test/service/rest/v1/repositories/npm/proxy/proxy", () => HttpResponse.json({ name: "proxy", online: true, storage: { blobStoreName: "default", strictContentTypeValidation: true }, proxy: { remoteUrl: "", contentMaxAge: 0, metadataMaxAge: 0 }, negativeCache: { enabled: false, timeToLive: 0 }, httpClient: {} })));
+  await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
+  const r = await f.run(app, ["repositories", "proxy", "npm", "get", "proxy", "--profile", "lab", "--json"]);
+  assert.equal(JSON.parse(r.stderr).error.code, "nexus.decodeFailed");
 });

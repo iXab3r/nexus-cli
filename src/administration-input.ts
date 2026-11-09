@@ -1,7 +1,7 @@
 import { open } from "node:fs/promises";
 import { constants } from "node:fs";
 import { resolve } from "node:path";
-import { CliError, type CommandContext } from "@eyeauras/cli-factory";
+import { CliError, diagnosticCause, type CommandContext } from "@eyeauras/cli-factory";
 
 /** File bodies avoid consuming JSON-RPC's protocol stdin. */
 export async function inputDocument(c: CommandContext, path: unknown, protectedFile = false): Promise<unknown> {
@@ -27,6 +27,6 @@ export async function inputDocument(c: CommandContext, path: unknown, protectedF
     catch { throw new CliError("Supply a valid UTF-8 JSON document.", { code: "usage.invalid", exitCode: 2 }); }
   } catch (cause) {
     if (cause instanceof CliError) throw cause;
-    throw new CliError("Could not read the input file.", { code: "nexus.input.unavailable" });
+    throw new CliError("Could not read the input file.", { code: "nexus.input.unavailable", cause: diagnosticCause(cause, [path, resolve(c.cwd, path)]) });
   } finally { await file?.close(); }
 }
