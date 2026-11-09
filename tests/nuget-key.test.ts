@@ -53,13 +53,14 @@ for (const action of ["export", "revoke"]) test(`#677 NuGet ${action} is self-se
   } else assert.deepEqual(receipt, { userId: credentials.username, oldKeyRevoked: true, replacementCreated: true });
 });
 
-for (const failure of ["401", "403", "404", "redirect", "malformed", "oversized", "ticket-mismatch"]) test(`#677 NuGet refusal ${failure} never exposes credentials`, async t => {
+for (const failure of ["401", "403", "404", "500", "redirect", "malformed", "oversized", "ticket-mismatch"]) test(`#677 NuGet refusal ${failure} never exposes credentials`, async t => {
   const secret = 'SYNTHETIC_"PRIVATE';
-  let keyCalls = 0;
+  let keyCalls = 0, oldKeyValid = true;
   const { fixture: f, app } = await offlineCli(t,
     http.post("https://nexus.example.test/service/extdirect", () => HttpResponse.json({ type: "rpc", tid: failure === "ticket-mismatch" ? 2 : 1, action: "rapture_Security", method: "authenticationToken", result: secret })),
     http.delete("https://nexus.example.test/service/rest/internal/nuget-api-key", () => {
       keyCalls++;
+      if (failure === "500") oldKeyValid = false;
       if (failure === "redirect") return new HttpResponse(null, { status: 302, headers: { location: "https://foreign.example.test/?token=" + encodeURIComponent(secret) } });
       if (failure === "malformed") return new HttpResponse('{"apiKey":"' + secret);
       if (failure === "oversized") return HttpResponse.json({ apiKey: secret.repeat(10000) });
@@ -72,6 +73,7 @@ for (const failure of ["401", "403", "404", "redirect", "malformed", "oversized"
   const r = await f.run(app, [...argv, "--json"]);
   assert.notEqual(r.exitCode, 0); assert.doesNotMatch(r.stdout + r.stderr, /PRIVATE|foreign.example.test/);
   assert.equal(keyCalls, failure === "ticket-mismatch" ? 0 : 1);
+  if (failure === "500") { assert.equal(oldKeyValid, false); assert.match(r.stderr, /key state may have changed/); assert.equal(JSON.parse(r.stderr).error.code, "http.serverError"); }
 });
 
 test("#677 key principal mismatch fails before reauthentication", async t => {

@@ -16,7 +16,7 @@ for (const [argv, path, value] of [
   [["users", "list", "--user-id", "owned"], "security/users", [user]],
   [["roles", "list"], "security/roles", [role]],
   [["roles", "get", "owned"], "security/roles/owned", role],
-  [["privileges", "list"], "security/privileges", [{ type: "wildcard", name: "custom-name", pattern: "nexus:repository-view:npm:shared:read" }, { ...viewPrivilege, type: "repository-view" }]],
+  [["privileges", "list"], "security/privileges", [{ type: "wildcard", name: "custom-name", pattern: "nexus:repository-view:npm:shared:read" }, { ...viewPrivilege, name: "nx-repository-view-*-*-read", type: "repository-view" }]],
   [["privileges", "get", "owned"], "security/privileges/owned", { ...viewPrivilege, type: "repository-view" }],
   [["content-selectors", "list"], "security/content-selectors", [selector]],
   [["content-selectors", "get", "owned"], "security/content-selectors/owned", selector],

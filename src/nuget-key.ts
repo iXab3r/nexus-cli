@@ -70,7 +70,7 @@ async function internalJson(c: CommandContext, url: string, method: string, head
   }
   if (response.status !== 200) {
     void response.body?.cancel();
-    throw new HttpError(response.status, keyOperation ? "Nexus refused the NuGet key operation." : "Nexus refused reauthentication.");
+    throw new HttpError(response.status, keyOperation ? (response.status >= 500 ? "Nexus key operation failed; key state may have changed." : "Nexus refused the NuGet key operation.") : "Nexus refused reauthentication.");
   }
   try {
     const text = new TextDecoder("utf-8", { fatal: true }).decode(await readResponseBody(response, { maxBytes: 65536, signal: c.signal }));

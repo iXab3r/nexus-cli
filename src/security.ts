@@ -46,7 +46,9 @@ function remove(path: string) {
 function privilege(value: any) {
   const schemas: Record<string, string> = { application: "ApiPrivilegeApplication", wildcard: "ApiPrivilegeWildcard", "repository-admin": "ApiPrivilegeRepositoryAdmin", "repository-view": "ApiPrivilegeRepositoryView", "repository-content-selector": "ApiPrivilegeRepositoryContentSelector", script: "ApiPrivilegeScript" };
   if (!value || typeof value.type !== "string" || !Object.hasOwn(schemas, value.type)) bad();
-  return dto(value, schemas[value.type], true);
+  const schema = securitySchemas[schemas[value.type]];
+  // Nexus built-in privilege names contain wildcards although create-name validation forbids them.
+  return validateDto(value, { ...schema, properties: { ...schema.properties, name: { type: "string", minLength: 1 } } }, securitySchemas, true);
 }
 async function realms(c: CommandContext): Promise<string[]> {
   const v = await document(c, "security/realms/active");
