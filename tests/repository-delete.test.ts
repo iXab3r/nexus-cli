@@ -82,3 +82,15 @@ test("#677 synthetic group-first cleanup preserves untargeted repositories and b
   for (const name of names) { const result = await f.run(app, ["repositories", "delete", name, "--confirm-name", name, "--profile", "lab", "--json"]); assert.equal(result.exitCode, 0, result.stderr); }
   assert.deepEqual([...state.keys()], ["untargeted"]); assert.equal(blobWrites, 0);
 });
+
+for (const status of [301, 302, 303, 307, 308]) test(`#677 exact repository DELETE does not follow HTTP ${status}`, async t => {
+  let writes = 0, redirected = 0;
+  const { fixture: f, app } = await offlineCli(t,
+    http.get(base + "repositories/owned", () => HttpResponse.json(row())),
+    http.delete(base + "repositories/owned", () => { writes++; return new HttpResponse(null, { status, headers: { location: base + "repositories/untargeted" } }); }),
+    http.all(base + "repositories/untargeted", () => { redirected++; return new HttpResponse(null, { status: 204 }); }));
+  await configure(f, app);
+  const result = await f.run(app, ["repositories", "delete", "owned", "--confirm-name", "owned", "--profile", "lab", "--json"]);
+  assert.equal(redirected, 0); assert.equal(writes, 1); assert.equal(result.exitCode, 1); assert.equal(result.stdout, "");
+  assert.equal(JSON.parse(result.stderr).error.code, "nexus.mutation.acknowledgementUnknown"); assert.match(result.stderr, /[Rr]econcile/);
+});
