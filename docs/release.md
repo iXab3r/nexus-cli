@@ -11,23 +11,31 @@ preserves the reused template's MIT notice without selecting a product license.
 
 ## Current adoption gate
 
-The current release is **`@eyeauras/nexus-cli@0.2.0`**, published as npm `latest`,
-with the matching [GitHub Release](https://github.com/iXab3r/nexus-cli/releases/tag/v0.2.0).
-It includes the accepted M7–M9 changes: known-store quota status, exact int64 metadata
-and the complete pinned scalar search selectors. The executable reads its version
-from package.json. [Publication evidence](https://github.com/iXab3r/nexus-cli/pull/667#issuecomment-6727401540)
+The current release is **`@eyeauras/nexus-cli@0.3.0`**, published as npm `latest`,
+with the matching [GitHub Release](https://github.com/iXab3r/nexus-cli/releases/tag/v0.3.0).
+It includes accepted M10/M11 repository and upload-field metadata, together with
+the earlier M7–M9 quota status, exact int64 metadata and scalar search selectors.
+The executable reads its version from package.json.
+[Publication evidence](https://github.com/iXab3r/nexus-cli/pull/675#issuecomment-6729199242)
 records owner 2FA approval, successful registry-installed checks and the verified
-archive/manifest at source commit `7b2352e627740c13668aebad33e65163220234e2`.
+archive/manifest at source commit `8d1db8fd63bd8f1357cf903685bae06428233d40`.
 Future stages still require owner approval on npm before publication.
 
 ## 0.3.0 release scope
 
-The next release candidate is **0.3.0**, containing accepted M10 and M11:
+Release **0.3.0** contains accepted M10 and M11:
 exact optional repository sizes, sanitized repository/upstream URL projections,
 and complete upload-field explanations and choices. These extend existing commands;
 they do not add another authentication protocol or package-format uploader.
-The published version remains 0.2.0 until the candidate's verified npm stage receives
-owner 2FA approval and VerifyRegistry completes.
+Verify33428, DryRun33429, Stage33430 and VerifyRegistry33431 completed successfully.
+After owner approval of stage `330df1ea-e39e-4136-a557-14c24c5df041`, VerifyRegistry
+wrote `published-verified`. The canonical 15-file archive and manifest match across
+DryRun, Stage and VerifyRegistry; independently downloaded npm registry and GitHub
+Release archive bytes match the verified stage exactly. Its SHA-1 is
+`f5adeadd51eaf329c6b985b0c87af67ede3dbd42`; the manifest and publication evidence
+record SHA-512 integrity. Local release qualification passed all 644 runtime tests
+on Node 22 and Node 24, the unchanged installed-package checks on Node 24, and both
+release-safety tests, with no failures or skips.
 
 The release checks exercise these existing user workflows:
 
