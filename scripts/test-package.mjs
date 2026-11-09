@@ -111,10 +111,12 @@ globalThis.fetch = async (input, init = {}) => {
 };
 `, {flag: "a"});
   const typedRepository = { name: "synthetic-hosted", online: true, storage: { blobStoreName: "default", strictContentTypeValidation: true, writePolicy: "ALLOW_ONCE" } };
+  const typedNugetProxy = { name:"synthetic-proxy", online:true, storage:{blobStoreName:"default",strictContentTypeValidation:true,writePolicy:"ALLOW"}, proxy:{remoteUrl:"https://upstream.example.test/index",contentMaxAge:1440,metadataMaxAge:1440,preserveEncodedCharacters:false}, negativeCache:{enabled:true,timeToLive:1440}, httpClient:{blocked:false,autoBlock:true,authentication:null,connection:{retries:null,userAgentSuffix:null,timeout:null,enableCircularRedirects:false,enableCookies:false,useTrustStore:false}}, nugetProxy:{nugetVersion:"V3",queryCacheItemMaxAge:3600,symbolServerUrl:null,allowAnonymousSymbolAccess:false}, replication:{preemptivePullEnabled:false,assetPathRegex:null},routingRuleName:null,cleanup:null };
   await writeFile(guard, `
 const distributionFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const url = new URL(String(input));
+  if (url.pathname.endsWith("/repositories/nuget/proxy/synthetic-proxy")) return Response.json(${JSON.stringify(typedNugetProxy)});
   if (url.pathname.endsWith("/repositories/npm/hosted/synthetic-hosted")) return Response.json(${JSON.stringify(typedRepository)});
   if (url.pathname.endsWith("/repositories/npm/hosted") && init.method === "POST") {
     require("node:assert/strict").deepEqual(JSON.parse(init.body), ${JSON.stringify(typedRepository)});
@@ -297,6 +299,7 @@ for (const method of ["get", "set", "delete"]) PlatformSecretStore.prototype[met
   const typedCreate = ["repositories", "hosted", "npm", "create", "--input-file", distributionInput, "--profile", "public"];
   assert.equal(JSON.parse(invoke([...typedCreate, "--json"])).acknowledged, true);
   assert.deepEqual(JSON.parse(invoke(["repositories", "hosted", "npm", "get", typedRepository.name, "--profile", "public", "--json"])), typedRepository);
+  assert.deepEqual(JSON.parse(invoke(["repositories", "proxy", "nuget", "get", "synthetic-proxy", "--profile", "public", "--json"])), typedNugetProxy);
   assert.deepEqual(JSON.parse(invoke(["security", "roles", "get", "synthetic-role", "--profile", "public", "--json"])).roles, ["parent"]);
   if (!windows) {
     const keyCredentials = join(temp, "key-credentials.json"), keyOutput = join(temp, "key.json");

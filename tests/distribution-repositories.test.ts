@@ -18,7 +18,7 @@ for (const format of ["cargo", "nuget", "npm", "docker"]) {
           ...(type === "hosted" ? { writePolicy: "ALLOW_ONCE" } : {}) },
         ...(type === "group" ? { group: { memberNames: ["public", "upstream"] } } : {}),
         ...(type === "proxy" ? {
-          proxy: { remoteUrl: "https://upstream.example.test/index", contentMaxAge: 1440, metadataMaxAge: 1440 },
+          proxy: { remoteUrl: "https://upstream.example.test/index", contentMaxAge: 1440, metadataMaxAge: 1440, preserveEncodedCharacters: true },
           negativeCache: { enabled: true, timeToLive: 1440 },
           httpClient: { blocked: false, autoBlock: true },
         } : {}),
@@ -187,7 +187,20 @@ test("#677 CLI-only replay provisions and reconciles 28 synthetic repositories",
 });
 
 test("#682 NuGet proxy preserves response-only storage write policy", async t => {
-  const response = { name: "proxy", online: true, storage: { blobStoreName: "default", strictContentTypeValidation: true, writePolicy: "ALLOW" }, proxy: { remoteUrl: "https://upstream.example.test/index", contentMaxAge: 1440, metadataMaxAge: 1440 }, negativeCache: { enabled: true, timeToLive: 1440 }, httpClient: { blocked: false, autoBlock: true }, nugetProxy: { nugetVersion: "V3", queryCacheItemMaxAge: 3600 } };
+  const response = {
+    name: "proxy", online: true,
+    storage: { blobStoreName: "default", strictContentTypeValidation: true, writePolicy: "ALLOW" },
+    cleanup: null,
+    proxy: { remoteUrl: "https://upstream.example.test/index", contentMaxAge: 1440, metadataMaxAge: 1440, preserveEncodedCharacters: false },
+    negativeCache: { enabled: true, timeToLive: 1440 },
+    httpClient: { blocked: false, autoBlock: true, authentication: null, connection: {
+      retries: null, userAgentSuffix: null, timeout: null,
+      enableCircularRedirects: false, enableCookies: false, useTrustStore: false,
+    } },
+    routingRuleName: null,
+    nugetProxy: { nugetVersion: "V3", queryCacheItemMaxAge: 3600, symbolServerUrl: null, allowAnonymousSymbolAccess: false },
+    replication: { preemptivePullEnabled: false, assetPathRegex: null },
+  };
   const { fixture: f, app } = await offlineCli(t, http.get("https://nexus.example.test/service/rest/v1/repositories/nuget/proxy/proxy", () => HttpResponse.json(response)));
   await f.run(app, ["profile", "configure", "lab", "--url", "https://nexus.example.test", "--auth-mode", "anonymous"]);
   const argv = ["repositories", "proxy", "nuget", "get", "proxy", "--profile", "lab"];

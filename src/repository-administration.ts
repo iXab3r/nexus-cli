@@ -15,6 +15,15 @@ const view = recordView<any>({ fields: [
 export function repositoryFormats(type: string) {
   return ["cargo", "nuget", "npm", "docker"].map(format => {
     const schema = repositorySchemas[cap(format) + cap(type) + "RepositoryApiRequest"];
+    // 3.97 NugetApiRepositoryAdapter supplies HostedStorageAttributes for proxy
+    // observations, although its mutation DTO accepts only StorageAttributes.
+    const readSchema = format === "nuget" && type === "proxy" ? {
+      ...schema, properties: { ...schema.properties, storage: {
+        ...repositorySchemas.StorageAttributes,
+        properties: { ...repositorySchemas.StorageAttributes.properties,
+          writePolicy: repositorySchemas.HostedStorageAttributes.properties.writePolicy },
+      } },
+    } : schema;
     const path = `repositories/${format}/${type}`;
     return command(format, `Manage ${format} ${type} repositories`, [
       command("get <name>", "Inspect repository settings", async ({ args }, c) => {
@@ -22,7 +31,7 @@ export function repositoryFormats(type: string) {
         // These response-only identity fields do not belong in PUT input.
         const { format: actualFormat, type: actualType, url, ...settings } = response ?? {};
         if ((actualFormat !== undefined && actualFormat !== format) || (actualType !== undefined && actualType !== type) || settings.name !== args.name) throw new CliError("Nexus repository identity is invalid.", { code: "nexus.decodeFailed" });
-        const result = validateDto(settings, schema, repositorySchemas, true);
+        const result = validateDto(settings, readSchema, repositorySchemas, true);
         return { ...result, ...(actualFormat === undefined ? {} : { format: actualFormat }), ...(actualType === undefined ? {} : { type: actualType }), ...(url === undefined ? {} : { url: safeRepositoryUrl(url) }) };
       }, { permission: Permission.ReadOnly, view }),
       ...["create", "update"].map(action => command(action === "create" ? "create" : "update <name>", action === "create" ? "Create a repository" : "Replace repository settings", async ({ args, options }, c) => {

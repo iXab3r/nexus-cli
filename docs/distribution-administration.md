@@ -15,7 +15,10 @@ match the command argument. Known optional settings are preserved when supplied;
 fields and invalid field types fail before a write. GET returns supported configuration,
 including ordered group members, without password/token fields. Returned URLs omit userinfo, queries and fragments;
 resupply any required protected upstream credentials separately when preparing input. Response-only `format`,
-`type` and `url` must be removed before using a GET result as mutation input.
+`type` and `url` must be removed before using a GET result as mutation input. Nexus 3.97 NuGet
+proxy observations also include response-only `storage.writePolicy`; remove that field for proxy
+create/update. The proxy request does not represent a hosted deployment policy. GET preserves this
+source-backed observation instead of treating it as an unknown setting.
 
 The request schemas come from the pinned 3.96.3-01 official OpenAPI in
 `docs/api/nexus-openapi.json`; `src/repository-schemas.ts` retains their selected field
