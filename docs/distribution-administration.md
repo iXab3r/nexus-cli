@@ -88,10 +88,11 @@ Delete is generic across repository formats/types. It requires local Update and 
 case-sensitive confirmation of a valid native repository name. Before sending DELETE it performs
 GET `/service/rest/v1/repositories/<name>` and verifies the returned name. A failed/missing/denied
 or mismatched preflight prevents deletion. The mutation sends exactly one DELETE to that same
-name and acknowledges only HTTP **204**, returning `{name,acknowledged:true}`. Neither a DELETE
+name, refuses redirects without following them, and acknowledges only HTTP **204**, returning `{name,acknowledged:true}`. Neither a DELETE
 404 nor a transport failure is accepted as successful cleanup. Unexpected 2xx produces
 `nexus.mutation.acknowledgementUnknown`; transport failure produces `nexus.mutation.outcomeUnknown`.
-Both require state reconciliation before retrying. There is no retry, cascade flag or force flag.
+Both require state reconciliation before retrying. A redirect also produces an unqualified acknowledgement
+error without sending a request to its Location. There is no retry, cascade flag or force flag.
 
 The native operation deletes the repository and its logical contents; this command does not call
 blob-store deletion/reset or delete any additional repository. Server soft-delete/garbage-collection

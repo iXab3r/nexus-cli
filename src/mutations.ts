@@ -25,7 +25,7 @@ export async function mutate(
   method: string,
   body?: FormData | string,
   expectedStatus = 204,
-  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven"; redactions?: string[]; contentType?: string } = { operation: "Mutate Nexus metadata" },
+  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven"; redactions?: string[]; contentType?: string; exactResponse?: boolean } = { operation: "Mutate Nexus metadata" },
 ) {
   const raw =
     c.profile.values.authMode === "anonymous"
@@ -37,7 +37,7 @@ export async function mutate(
   const url = String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path;
   let response: Response;
   try {
-    response = await fetchWithRedirects(
+    response = diagnostic.exactResponse ? await c.fetch(url, { method, headers, body, signal: c.signal, redirect: "manual" }) : await fetchWithRedirects(
       c.fetch,
       url,
       { method, headers, body, signal: c.signal },
@@ -56,6 +56,12 @@ export async function mutate(
   }
   // Cancellation can await an unread cloned stream; acknowledgment needs only status.
   void response.body?.cancel().catch(() => undefined);
+  if (diagnostic.exactResponse && response.status >= 300 && response.status < 400)
+    throw new CliError(
+      operationContext(diagnostic.operation, diagnostic.repository) +
+        ": Nexus returned a redirect instead of the expected acknowledgment. Remote changes may have occurred. Reconcile state before retrying.",
+      { code: "nexus.mutation.acknowledgementUnknown" },
+    );
   if (response.status !== expectedStatus && response.status >= 200 && response.status < 300)
     throw new CliError(
       operationContext(diagnostic.operation, diagnostic.repository) +

@@ -19,7 +19,7 @@ export const repositoryDeleteCommand = command("delete <name>", "Delete one conf
   const observed = await repositories(c, name) as Repository;
   if (observed.name !== name)
     throw new CliError("Nexus preflight did not identify the requested repository.", { code: "nexus.decodeFailed" });
-  await mutate(c, "repositories/" + pathSegment(name), "DELETE", undefined, 204, { operation: "Delete Nexus repository", repository: name });
+  await mutate(c, "repositories/" + pathSegment(name), "DELETE", undefined, 204, { operation: "Delete Nexus repository", repository: name, exactResponse: true });
   return { name, acknowledged: true };
 }, { permission: Permission.Update, options: [{ flags: "--confirm-name <name>", description: "Confirm the exact repository name, including contents", required: true }], view });
 export function repositoryFormats(type: string) {
