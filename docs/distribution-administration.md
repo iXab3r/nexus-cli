@@ -35,3 +35,6 @@ Group `memberNames` order is significant. Leave `writableMember` unset for hoste
 publication; group deployment is a separate Pro capability. Cargo's authentication override
 belongs to proxy/group, not hosted. Docker `forceBasicAuth=false` is not evidence of anonymous
 access: active realms, anonymous configuration and repository privileges also matter.
+
+A complete ordered [reconfiguration recipe](distribution-reconfiguration.md) prepares all 28 synthetic
+repositories and composes the security/key commands with independently approved target inputs.

@@ -108,3 +108,46 @@ test("#677 key handoff isolates profiles and never reuses observer credentials",
   assert.equal(headers[0], "Basic " + Buffer.from(owned.username + ":" + owned.password).toString("base64"));
   assert.equal(headers[0], headers[1]); assert.notEqual(csrf[0], csrf[1]);
 });
+
+for (const boundary of ["ticket", "key"]) test(`#677 ${boundary} transport diagnostics redact finite-file credentials and tickets`, async t => {
+  const { createCli } = await import("@eyeauras/cli-factory");
+  const { createCliFixture } = await import("@eyeauras/cli-factory/testing");
+  const { createDefinition } = await import("../src/cli.js");
+  const pair = { username: "owned", password: 'SYNTHETIC_"PRIVATE password' }, ticket = 'SYNTHETIC_"PRIVATE ticket';
+  const basic = "Basic " + Buffer.from(pair.username + ":" + pair.password).toString("base64"), encodedTicket = Buffer.from(ticket).toString("base64");
+  const f = await createCliFixture(t, { applicationId: "nexus-cli", profiles: [{ name: "observer", values: { url: "https://nexus.example.test", authMode: "anonymous" }, permissions: ["Update"] }] });
+  let calls = 0;
+  const app = f.createApplication(runtime => createCli({ ...createDefinition(), runtime: { ...runtime, fetch: async input => {
+    calls++;
+    if (boundary === "key" && String(input).endsWith("/service/extdirect")) return Response.json({ type: "rpc", tid: 1, action: "rapture_Security", method: "authenticationToken", result: ticket });
+    throw new Error([pair.password, JSON.stringify(pair.password), encodeURIComponent(pair.password), basic, ...(boundary === "key" ? [encodedTicket, ticket, encodeURIComponent(ticket)] : [])].join(" "));
+  } } }));
+  const file = join(f.root, "credentials.json"); await writeFile(file, JSON.stringify(pair), { mode: 0o600 });
+  const argv = ["security", "nuget-api-key", "revoke", "--user-id", pair.username, "--credentials-file", file, "--profile", "observer", "--verbose"];
+  const r = await f.run(app, [...argv, "--json"]);
+  const expected = boundary === "ticket" ? "nexus.key.requestFailed" : "nexus.key.outcomeUnknown";
+  assert.equal(JSON.parse(r.stderr).error.code, expected);
+  const rpc: any = await f.rpc(app, [argv]); assert.equal(rpc[0].error.data.code, expected);
+  const output = r.stdout + r.stderr + JSON.stringify(rpc);
+  for (const secret of [pair.password, JSON.stringify(pair.password).slice(1, -1), encodeURIComponent(pair.password), basic, basic.slice(6), ...(boundary === "key" ? [ticket, encodedTicket, encodeURIComponent(ticket)] : [])]) assert.ok(!output.includes(secret), "Known secret remained in diagnostics");
+  assert.equal(calls, boundary === "ticket" ? 2 : 4);
+});
+
+test("#677 key cancellation stops once and leaves later invocations usable", async t => {
+  const { createCli } = await import("@eyeauras/cli-factory");
+  const { createCliFixture } = await import("@eyeauras/cli-factory/testing");
+  const { createDefinition } = await import("../src/cli.js");
+  const f = await createCliFixture(t, { applicationId: "nexus-cli", profiles: [{ name: "observer", values: { url: "https://nexus.example.test", authMode: "anonymous" }, permissions: ["Update"] }] });
+  const cancellation = new AbortController(); let keyCalls = 0;
+  const app = f.createApplication(runtime => createCli({ ...createDefinition(), runtime: { ...runtime, fetch: async (input, init) => {
+    if (String(input).endsWith("/service/extdirect")) return Response.json({ type: "rpc", tid: 1, action: "rapture_Security", method: "authenticationToken", result: "SYNTHETIC_TICKET" });
+    keyCalls++;
+    if (keyCalls > 1) return Response.json({ apiKey: "SYNTHETIC_REPLACEMENT" });
+    return new Promise<Response>((_resolve, reject) => { init!.signal!.addEventListener("abort", () => reject(init!.signal!.reason), { once: true }); queueMicrotask(() => cancellation.abort()); });
+  } } }));
+  const file = join(f.root, "credentials.json"); await writeFile(file, JSON.stringify({ username: "owned", password: "SYNTHETIC_PASSWORD" }), { mode: 0o600 });
+  const argv = ["security", "nuget-api-key", "revoke", "--user-id", "owned", "--credentials-file", file, "--profile", "observer"];
+  const cancelled = await f.run(app, [...argv, "--json"], { signal: cancellation.signal });
+  assert.notEqual(cancelled.exitCode, 0); assert.equal(keyCalls, 1); assert.doesNotMatch(cancelled.stdout + cancelled.stderr, /SYNTHETIC_/);
+  const rpc: any = await f.rpc(app, [argv]); assert.equal(rpc[0].result?.oldKeyRevoked, true); assert.equal(keyCalls, 2);
+});
