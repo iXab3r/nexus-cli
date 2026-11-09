@@ -44,7 +44,7 @@ export async function mutate(
     );
   } catch (cause) {
     throw new CliError(
-      operationContext(diagnostic.operation, diagnostic.repository) + ": Nexus mutation outcome is unknown. Remote changes may have occurred.",
+      operationContext(diagnostic.operation, diagnostic.repository) + ": Nexus mutation outcome is unknown. Remote changes may have occurred. Reconcile state before retrying.",
       {
         code: "nexus.mutation.outcomeUnknown",
         cause: diagnosticCause(

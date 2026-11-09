@@ -1,6 +1,6 @@
 import { validateDto, dtoRedactions } from "./nexus-dto.js";
 import { CliError, command, Permission, recordView } from "@eyeauras/cli-factory";
-import { pathSegment } from "./client.js";
+import { pathSegment, repositories, type Repository } from "./client.js";
 import { document, mutate } from "./mutations.js";
 import { inputDocument } from "./administration-input.js";
 import { repositorySchemas } from "./repository-schemas.js";
@@ -12,6 +12,16 @@ const view = recordView<any>({ fields: [
   { label: "Members", value: r => r.group?.memberNames.join(", ") },
   { label: "Acknowledged", value: r => r.acknowledged },
 ] });
+export const repositoryDeleteCommand = command("delete <name>", "Delete one confirmed repository and its contents", async ({ args, options }, c) => {
+  const name = String(args.name);
+  if (options.confirmName !== name || !/^[a-zA-Z0-9-][a-zA-Z0-9_.-]*$/.test(name))
+    throw new CliError("Confirmation must exactly match a valid repository name.", { code: "usage.invalid", exitCode: 2 });
+  const observed = await repositories(c, name) as Repository;
+  if (observed.name !== name)
+    throw new CliError("Nexus preflight did not identify the requested repository.", { code: "nexus.decodeFailed" });
+  await mutate(c, "repositories/" + pathSegment(name), "DELETE", undefined, 204, { operation: "Delete Nexus repository", repository: name });
+  return { name, acknowledged: true };
+}, { permission: Permission.Update, options: [{ flags: "--confirm-name <name>", description: "Confirm the exact repository name, including contents", required: true }], view });
 export function repositoryFormats(type: string) {
   return ["cargo", "nuget", "npm", "docker"].map(format => {
     const schema = repositorySchemas[cap(format) + cap(type) + "RepositoryApiRequest"];

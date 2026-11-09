@@ -469,3 +469,5 @@ and its explicitly selected Nexus 3.97.0-13 internal protocol. These service mut
 files; Core profile/auth credential stdin is unchanged.
 
 Global outbound HTTP diagnostics: see [the ReadOnly settings contract](docs/system-http.md).
+
+Generic repository deletion uses `repositories delete <name> --confirm-name <name>` with Update and exact-name GET preflight. Inspect group references using `repositories list --include-group-members`; see [the deletion contract](docs/distribution-administration.md#delete-one-repository-and-inspect-group-references).
