@@ -1,0 +1,46 @@
+{
+  "matrix": {
+    "columns": [
+      { "title": "nexus-cli 0.3.0", "subtitle": "this package" },
+      { "title": "nexus3 4.2.1", "subtitle": "Python nexus3-cli" }
+    ],
+    "rowHeader": "API area",
+    "countHeader": "operations",
+    "legend": "Share of official REST operations reachable",
+    "ariaLabel": "REST API coverage matrix: nexus-cli 0.3.0 reaches 20 of 442 operations, nexus3 4.2.1 reaches 18",
+    "rows": [
+      { "name": "Components, assets, upload specs", "total": 9, "values": [9, 2] },
+      { "name": "Search", "total": 6, "values": [3, 1] },
+      { "name": "Repositories: list, inspect, browse", "total": 10, "values": [2, 1] },
+      { "name": "Hosted repository settings", "total": 69, "values": [2, 0] },
+      { "name": "Proxy repository settings", "total": 75, "values": [0, 0] },
+      { "name": "Group repository settings", "total": 63, "values": [0, 0] },
+      { "name": "Blob stores and data store", "total": 23, "values": [2, 6] },
+      { "name": "Status, nodes, support, recovery", "total": 23, "values": [2, 0] },
+      { "name": "Tasks, scripts, capabilities", "total": 20, "values": [0, 8] },
+      { "name": "Cleanup, routing, selectors, tags", "total": 24, "values": [0, 0] },
+      { "name": "Users, roles, privileges, tokens", "total": 39, "values": [0, 0] },
+      { "name": "LDAP, SAML, Crowd, realms", "total": 29, "values": [0, 0] },
+      { "name": "Certificates, encryption, network", "total": 24, "values": [0, 0] },
+      { "name": "Firewall, license, instance config", "total": 28, "values": [0, 0] }
+    ],
+    "total": { "name": "All operations", "total": 442, "values": [20, 18] }
+  },
+  "flow": {
+    "ariaLabel": "People, AI agents, scripts and CI jobs use one nexus-cli command tree, which applies profiles, the secret store, a permission gate, transfer limits and error scrubbing before calling the Nexus Repository REST API",
+    "callers": [
+      { "title": "People", "sub": "readable tables and records" },
+      { "title": "AI agents and scripts", "sub": "--json  ·  --json-rpc" },
+      { "title": "CI jobs", "sub": "credentials on stdin" }
+    ],
+    "product": { "title": "nexus-cli", "sub": "one command tree, 22 service commands" },
+    "layers": [
+      { "title": "Profiles", "sub": "several servers, isolated settings" },
+      { "title": "Secret store", "sub": "credentials never in arguments" },
+      { "title": "Permission gate", "sub": "ReadOnly on · Update off until granted", "accent": true },
+      { "title": "Bounded transfers", "sub": "page and byte limits, SHA256 check" },
+      { "title": "Error scrubbing", "sub": "no response bodies or credentials" }
+    ],
+    "service": { "title": "Nexus Repository API", "sub": "20 of 442 REST operations" }
+  }
+}
