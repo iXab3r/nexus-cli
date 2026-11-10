@@ -32,7 +32,7 @@ no server administration yet.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/coverage-matrix-dark.svg">
-  <img src="docs/images/coverage-matrix-light.svg" alt="Coverage matrix: nexus-cli 0.3.0 reaches 20 of 442 operations (5%), including all 9 component, asset and upload-spec operations; the Python nexus3 4.2.1 reaches 18 (4%), mostly blob stores, tasks and scripts">
+  <img src="docs/images/coverage-matrix-light.svg" alt="Coverage matrix: nexus-cli 0.3.0 reaches 20 of 442 operations (5%), including all 9 component, asset and upload-spec operations; the Python nexus3 4.2.1 reaches 18 (4%), mostly blob stores, tasks and scripts; the Python nexus3-tool 0.7.0 reaches 7 (2%), for Docker image cleanup">
 </picture>
 
 Numbers, method and caveats: [coverage comparison](docs/coverage-comparison.md).

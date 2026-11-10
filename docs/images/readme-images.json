@@ -2,29 +2,30 @@
   "matrix": {
     "columns": [
       { "title": "nexus-cli 0.3.0", "subtitle": "this package" },
-      { "title": "nexus3 4.2.1", "subtitle": "Python nexus3-cli" }
+      { "title": "nexus3 4.2.1", "subtitle": "Python nexus3-cli" },
+      { "title": "nexus3-tool 0.7.0", "subtitle": "Python, PyPI" }
     ],
     "rowHeader": "API area",
     "countHeader": "operations",
     "legend": "Share of official REST operations reachable",
-    "ariaLabel": "REST API coverage matrix: nexus-cli 0.3.0 reaches 20 of 442 operations, nexus3 4.2.1 reaches 18",
+    "ariaLabel": "REST API coverage matrix: nexus-cli 0.3.0 reaches 20 of 442 operations, nexus3 4.2.1 reaches 18, nexus3-tool 0.7.0 reaches 7",
     "rows": [
-      { "name": "Components, assets, upload specs", "total": 9, "values": [9, 2] },
-      { "name": "Search", "total": 6, "values": [3, 1] },
-      { "name": "Repositories: list, inspect, browse", "total": 10, "values": [2, 1] },
-      { "name": "Hosted repository settings", "total": 69, "values": [2, 0] },
-      { "name": "Proxy repository settings", "total": 75, "values": [0, 0] },
-      { "name": "Group repository settings", "total": 63, "values": [0, 0] },
-      { "name": "Blob stores and data store", "total": 23, "values": [2, 6] },
-      { "name": "Status, nodes, support, recovery", "total": 23, "values": [2, 0] },
-      { "name": "Tasks, scripts, capabilities", "total": 20, "values": [0, 8] },
-      { "name": "Cleanup, routing, selectors, tags", "total": 24, "values": [0, 0] },
-      { "name": "Users, roles, privileges, tokens", "total": 39, "values": [0, 0] },
-      { "name": "LDAP, SAML, Crowd, realms", "total": 29, "values": [0, 0] },
-      { "name": "Certificates, encryption, network", "total": 24, "values": [0, 0] },
-      { "name": "Firewall, license, instance config", "total": 28, "values": [0, 0] }
+      { "name": "Components, assets, upload specs", "total": 9, "values": [9, 2, 2] },
+      { "name": "Search", "total": 6, "values": [3, 1, 1] },
+      { "name": "Repositories: list, inspect, browse", "total": 10, "values": [2, 1, 1] },
+      { "name": "Hosted repository settings", "total": 69, "values": [2, 0, 0] },
+      { "name": "Proxy repository settings", "total": 75, "values": [0, 0, 0] },
+      { "name": "Group repository settings", "total": 63, "values": [0, 0, 0] },
+      { "name": "Blob stores and data store", "total": 23, "values": [2, 6, 1] },
+      { "name": "Status, nodes, support, recovery", "total": 23, "values": [2, 0, 0] },
+      { "name": "Tasks, scripts, capabilities", "total": 20, "values": [0, 8, 2] },
+      { "name": "Cleanup, routing, selectors, tags", "total": 24, "values": [0, 0, 0] },
+      { "name": "Users, roles, privileges, tokens", "total": 39, "values": [0, 0, 0] },
+      { "name": "LDAP, SAML, Crowd, realms", "total": 29, "values": [0, 0, 0] },
+      { "name": "Certificates, encryption, network", "total": 24, "values": [0, 0, 0] },
+      { "name": "Firewall, license, instance config", "total": 28, "values": [0, 0, 0] }
     ],
-    "total": { "name": "All operations", "total": 442, "values": [20, 18] }
+    "total": { "name": "All operations", "total": 442, "values": [20, 18, 7] }
   },
   "flow": {
     "ariaLabel": "People, AI agents, scripts and CI jobs use one nexus-cli command tree, which applies profiles, the secret store, a permission gate, transfer limits and error scrubbing before calling the Nexus Repository REST API",
