@@ -1,23 +1,20 @@
 # REST coverage comparison
 
-How much of the Sonatype Nexus Repository REST API each tool can call. Measured 2026-11-10.
+How much of the Sonatype Nexus Repository REST API each tool can call. Own source refreshed 2026-11-11; competitor measurements remain frozen at 2026-11-10.
 
 | Tool | Reachable operations | GET (166) | POST, PUT, DELETE (276) |
 |---|---:|---:|---:|
-| `nexus-cli` 0.3.0 (this package) | 20 of 442 (5%) | 16 | 4 |
+| nexus-cli source (0.3.0 + #677) | 90 of 442 (20%) | 42 | 48 |
 | `n3dr` 7.6.0 (Go, GitHub release of `030/n3dr`) | 23 of 442 (5%) | 5 | 18 |
 | `nexus3` 4.2.1 (Python `nexus3-cli` from PyPI) | 18 of 442 (4%) | 8 | 10 |
 | `nexus` 0.8.0 (Go, GitHub release of `sonatype-nexus-community/nexus-cli`) | 5 of 442 (1%) | 4 | 1 |
 
-In `nexus-cli` the 16 GET operations are the ReadOnly commands and the other 4 need the Update
-grant. `nexus-cli` shares three operations with `n3dr`, five with `nexus3` and four with the
-community `nexus`; no operation is reachable from all four. Together the four tools reach 54.
+The 42 public GET operations use ReadOnly commands; the other 48 require Update.
+Internal NuGet key operations require Update but are outside this denominator.
+The source shares 14 operations with n3dr, 5 with nexus3 and 4 with community nexus;
+0 operations are reachable from all four. Together they reach 113.
 
-All four tools cover a small part of the API, and each a different part: `n3dr` creates
-repositories, users and roles and moves artifacts in bulk, `nexus3` manages blob stores, tasks
-and scripts, the community `nexus` reads status and lists. `nexus-cli` is selected story by story
-for artifact work (find, download, publish, delete) and has no server administration commands
-yet; the inventory is a census, not a promise to implement every operation.
+Each tool covers a different part of the API. The current nexus-cli source adds repository and security administration to artifact transfers; n3dr offers bulk artifact movement, nexus3 covers blob stores/tasks/scripts, and community nexus covers status and lists. Reachability is not full-contract coverage or live certification.
 
 ## Tools considered
 
@@ -54,39 +51,39 @@ not decide the order.
 
 Percent of operations reachable, with the count in brackets.
 
-| API area | Operations | nexus-cli 0.3.0 | n3dr 7.6.0 | nexus3 4.2.1 | nexus 0.8.0 |
+| API area | Operations | nexus-cli source | n3dr 7.6.0 | nexus3 4.2.1 | nexus 0.8.0 |
 |---|---:|---:|---:|---:|---:|
 | Components, assets, upload specs | 9 | 100% (9) | 22% (2) | 22% (2) | 11% (1) |
 | Search | 6 | 50% (3) | 0% (0) | 17% (1) | 0% (0) |
-| Repositories: list, inspect, browse | 10 | 20% (2) | 20% (2) | 10% (1) | 10% (1) |
-| Hosted repository settings | 69 | 3% (2) | 10% (7) | 0% (0) | 0% (0) |
-| Proxy repository settings | 75 | 0% (0) | 5% (4) | 0% (0) | 0% (0) |
-| Group repository settings | 63 | 0% (0) | 2% (1) | 0% (0) | 0% (0) |
+| Repositories: list, inspect, browse | 10 | 40% (4) | 20% (2) | 10% (1) | 10% (1) |
+| Hosted repository settings | 69 | 20% (14) | 10% (7) | 0% (0) | 0% (0) |
+| Proxy repository settings | 75 | 16% (12) | 5% (4) | 0% (0) | 0% (0) |
+| Group repository settings | 63 | 19% (12) | 2% (1) | 0% (0) | 0% (0) |
 | Blob stores and data store | 23 | 9% (2) | 0% (0) | 26% (6) | 0% (0) |
 | Status, nodes, support, recovery | 23 | 9% (2) | 0% (0) | 0% (0) | 13% (3) |
-| Tasks, scripts, capabilities | 20 | 0% (0) | 0% (0) | 40% (8) | 0% (0) |
-| Cleanup, routing, selectors, tags | 24 | 0% (0) | 0% (0) | 0% (0) | 0% (0) |
-| Users, roles, privileges, tokens | 39 | 0% (0) | 15% (6) | 0% (0) | 0% (0) |
-| LDAP, SAML, Crowd, realms | 29 | 0% (0) | 3% (1) | 0% (0) | 0% (0) |
-| Certificates, encryption, network | 24 | 0% (0) | 0% (0) | 0% (0) | 0% (0) |
+| Tasks, scripts, capabilities | 20 | 20% (4) | 0% (0) | 40% (8) | 0% (0) |
+| Cleanup, routing, selectors, tags | 24 | 21% (5) | 0% (0) | 0% (0) | 0% (0) |
+| Users, roles, privileges, tokens | 39 | 49% (19) | 15% (6) | 0% (0) | 0% (0) |
+| LDAP, SAML, Crowd, realms | 29 | 10% (3) | 3% (1) | 0% (0) | 0% (0) |
+| Certificates, encryption, network | 24 | 4% (1) | 0% (0) | 0% (0) | 0% (0) |
 | Firewall, license, instance config | 28 | 0% (0) | 0% (0) | 0% (0) | 0% (0) |
-| **All operations** | **442** | **5% (20)** | **5% (23)** | **4% (18)** | **1% (5)** |
+| **All operations** | **442** | **20% (90)** | **5% (23)** | **4% (18)** | **1% (5)** |
 
 ## By inventory group
 
 Reachable operation counts. Groups are the inventory's tracker roots, with the per-format
 `Repository Management` roots merged by repository type.
 
-| Resource group | Operations | nexus-cli 0.3.0 | n3dr 7.6.0 | nexus3 4.2.1 | nexus 0.8.0 |
+| Resource group | Operations | nexus-cli source | n3dr 7.6.0 | nexus3 4.2.1 | nexus 0.8.0 |
 |---|---:|---:|---:|---:|---:|
 | `assets` | 3 | 3 | 0 | 1 | 0 |
 | `Azure blob store` | 1 | 0 | 0 | 0 | 0 |
 | `Blob store` | 20 | 2 | 0 | 6 | 0 |
-| `Capabilities` | 5 | 0 | 0 | 0 | 0 |
+| `Capabilities` | 5 | 4 | 0 | 0 | 0 |
 | `Cleanup policies` | 5 | 0 | 0 | 0 | 0 |
 | `Community Edition Eula` | 2 | 0 | 0 | 0 | 0 |
 | `components` | 4 | 4 | 2 | 1 | 1 |
-| `Content selectors` | 5 | 0 | 0 | 0 | 0 |
+| `Content selectors` | 5 | 5 | 0 | 0 | 0 |
 | `Data Store` | 2 | 0 | 0 | 0 | 0 |
 | `Email` | 4 | 0 | 0 | 0 | 0 |
 | `Formats` | 2 | 2 | 0 | 0 | 0 |
@@ -94,35 +91,35 @@ Reachable operation counts. Groups are the inventory's tracker roots, with the p
 | `Internal UI: API permissions` | 1 | 0 | 0 | 0 | 0 |
 | `Lifecycle` | 3 | 0 | 0 | 0 | 0 |
 | `Malicious Risk On Disk` | 2 | 0 | 0 | 0 | 0 |
-| `Manage Sonatype HTTP System Settings` | 3 | 0 | 0 | 0 | 0 |
+| `Manage Sonatype HTTP System Settings` | 3 | 1 | 0 | 0 | 0 |
 | `Manage Sonatype Repository Firewall configuration` | 11 | 0 | 0 | 0 | 0 |
 | `Monthly Metrics` | 1 | 0 | 0 | 0 | 0 |
 | `Product licensing` | 3 | 0 | 0 | 0 | 0 |
 | `Reconcile Plan` | 9 | 0 | 0 | 0 | 0 |
 | `Recovery Mode` | 2 | 0 | 0 | 0 | 0 |
 | `Repository Browse` | 2 | 0 | 0 | 0 | 0 |
-| `Repository Management / General` | 8 | 2 | 2 | 1 | 1 |
-| `Repository Management / group` | 63 | 0 | 1 | 0 | 0 |
-| `Repository Management / hosted` | 69 | 2 | 7 | 0 | 0 |
-| `Repository Management / proxy` | 75 | 0 | 4 | 0 | 0 |
+| `Repository Management / General` | 8 | 4 | 2 | 1 | 1 |
+| `Repository Management / group` | 63 | 12 | 1 | 0 | 0 |
+| `Repository Management / hosted` | 69 | 14 | 7 | 0 | 0 |
+| `Repository Management / proxy` | 75 | 12 | 4 | 0 | 0 |
 | `Routing rules` | 5 | 0 | 0 | 0 | 0 |
 | `Script` | 6 | 0 | 0 | 4 | 0 |
 | `Search` | 6 | 3 | 0 | 1 | 0 |
 | `Security management` | 1 | 0 | 0 | 0 | 0 |
-| `Security Management: Anonymous Access` | 2 | 0 | 1 | 0 | 0 |
+| `Security Management: Anonymous Access` | 2 | 2 | 1 | 0 | 0 |
 | `Security management: API access` | 1 | 0 | 0 | 0 | 0 |
 | `Security management: api keys principals encryption` | 1 | 0 | 0 | 0 | 0 |
 | `Security management: LDAP` | 11 | 0 | 1 | 0 | 0 |
-| `Security management: privileges` | 15 | 0 | 0 | 0 | 0 |
-| `Security management: realms` | 3 | 0 | 0 | 0 | 0 |
-| `Security management: roles` | 6 | 0 | 2 | 0 | 0 |
+| `Security management: privileges` | 15 | 7 | 0 | 0 | 0 |
+| `Security management: realms` | 3 | 3 | 0 | 0 | 0 |
+| `Security management: roles` | 6 | 5 | 2 | 0 | 0 |
 | `Security management: SAML` | 5 | 0 | 0 | 0 | 0 |
 | `Security management: SAML users` | 5 | 0 | 0 | 0 | 0 |
 | `Security management: SAML users (v2)` | 1 | 0 | 0 | 0 | 0 |
 | `Security management: secrets encryption` | 1 | 0 | 0 | 0 | 0 |
 | `Security Management: SSRF Protection` | 2 | 0 | 0 | 0 | 0 |
 | `Security management: user tokens` | 4 | 0 | 0 | 0 | 0 |
-| `Security management: users` | 9 | 0 | 3 | 0 | 0 |
+| `Security management: users` | 9 | 5 | 3 | 0 | 0 |
 | `Security: Atlassian Crowd` | 4 | 0 | 0 | 0 | 0 |
 | `Security: certificates` | 4 | 0 | 0 | 0 | 0 |
 | `Security: IP Allow List` | 9 | 0 | 0 | 0 | 0 |
@@ -142,11 +139,7 @@ Reachable operation counts. Groups are the inventory's tracker roots, with the p
   [provenance](product-contract.md#reproducible-specification-provenance).
 - **Reachable** means a shipped command issues that exact method and path. It does not measure
   every query parameter, payload field, server version, edition or remote privilege.
-- **nexus-cli 0.3.0** was counted from the request paths in `src/` and checked against the
-  inventory identities. It equals the reachability of 20 recorded in the
-  [delivery plan](milestones.md), which also records the stricter full-contract census: 12
-  covered, 8 partial, 422 missing. `content download` reads `/repository/...`, which is outside
-  the REST inventory and not counted.
+- **nexus-cli source (0.3.0 + #677)** is counted from the typed command bindings in src, including composed capability and repository-settings reads. The [exact credited pairs](api/cli-reachability.json) match the frozen inventory. This is current source, not a newly published 0.3.0 release. Historical milestone full-contract counts are not extrapolated. Direct repository content and internal NuGet key/reauth endpoints are outside the public denominator. The internal reauth protocol has offline mocks/source evidence but failed live qualification; its root cause remains unproved.
 - **nexus3 4.2.1** was measured by reading the published wheel
   (`nexus3_cli-4.2.1-py3-none-any.whl`, SHA-256
   `c41a164e985f4a4f825d582619aaa5f4680b64f9525ed186033e83d50943302a`) without running it. Each
@@ -264,28 +257,98 @@ picture generator.
   with the skill's method, and update the version, the caveats and the credited list together.
 
 <details>
-<summary>The 20 operations reachable from nexus-cli 0.3.0</summary>
+<summary>The 90 operations reachable from nexus-cli source</summary>
 
-- `GET /v1/assets` (ReadOnly)
 - `DELETE /v1/assets/{id}` (Update)
+- `DELETE /v1/components/{id}` (Update)
+- `DELETE /v1/repositories/{repositoryName}` (Update)
+- `DELETE /v1/security/content-selectors/{name}` (Update)
+- `DELETE /v1/security/privileges/{privilegeName}` (Update)
+- `DELETE /v1/security/roles/{id}` (Update)
+- `DELETE /v1/security/users/{userId}` (Update)
+- `GET /v1/assets` (ReadOnly)
 - `GET /v1/assets/{id}` (ReadOnly)
 - `GET /v1/blobstores` (ReadOnly)
 - `GET /v1/blobstores/{name}/quota-status` (ReadOnly)
+- `GET /v1/capabilities` (ReadOnly)
+- `GET /v1/capabilities/types` (ReadOnly)
 - `GET /v1/components` (ReadOnly)
-- `POST /v1/components` (Update)
-- `DELETE /v1/components/{id}` (Update)
 - `GET /v1/components/{id}` (ReadOnly)
 - `GET /v1/formats/upload-specs` (ReadOnly)
 - `GET /v1/formats/{format}/upload-specs` (ReadOnly)
+- `GET /v1/http` (ReadOnly)
 - `GET /v1/repositories` (ReadOnly)
-- `POST /v1/repositories/raw/hosted` (Update)
+- `GET /v1/repositories/cargo/group/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/cargo/hosted/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/cargo/proxy/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/docker/group/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/docker/hosted/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/docker/proxy/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/npm/group/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/npm/hosted/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/npm/proxy/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/nuget/group/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/nuget/hosted/{repositoryName}` (ReadOnly)
+- `GET /v1/repositories/nuget/proxy/{repositoryName}` (ReadOnly)
 - `GET /v1/repositories/raw/hosted/{repositoryName}` (ReadOnly)
 - `GET /v1/repositories/{repositoryName}` (ReadOnly)
+- `GET /v1/repositorySettings` (ReadOnly)
 - `GET /v1/search` (ReadOnly)
 - `GET /v1/search/assets` (ReadOnly)
 - `GET /v1/search/assets/download` (ReadOnly)
+- `GET /v1/security/anonymous` (ReadOnly)
+- `GET /v1/security/content-selectors` (ReadOnly)
+- `GET /v1/security/content-selectors/{name}` (ReadOnly)
+- `GET /v1/security/privileges` (ReadOnly)
+- `GET /v1/security/privileges/{privilegeName}` (ReadOnly)
+- `GET /v1/security/realms/active` (ReadOnly)
+- `GET /v1/security/realms/available` (ReadOnly)
+- `GET /v1/security/roles` (ReadOnly)
+- `GET /v1/security/roles/{id}` (ReadOnly)
+- `GET /v1/security/users` (ReadOnly)
 - `GET /v1/status` (ReadOnly)
 - `GET /v1/status/writable` (ReadOnly)
+- `POST /v1/capabilities` (Update)
+- `POST /v1/components` (Update)
+- `POST /v1/repositories/cargo/group` (Update)
+- `POST /v1/repositories/cargo/hosted` (Update)
+- `POST /v1/repositories/cargo/proxy` (Update)
+- `POST /v1/repositories/docker/group` (Update)
+- `POST /v1/repositories/docker/hosted` (Update)
+- `POST /v1/repositories/docker/proxy` (Update)
+- `POST /v1/repositories/npm/group` (Update)
+- `POST /v1/repositories/npm/hosted` (Update)
+- `POST /v1/repositories/npm/proxy` (Update)
+- `POST /v1/repositories/nuget/group` (Update)
+- `POST /v1/repositories/nuget/hosted` (Update)
+- `POST /v1/repositories/nuget/proxy` (Update)
+- `POST /v1/repositories/raw/hosted` (Update)
+- `POST /v1/security/content-selectors` (Update)
+- `POST /v1/security/privileges/repository-content-selector` (Update)
+- `POST /v1/security/privileges/repository-view` (Update)
+- `POST /v1/security/roles` (Update)
+- `POST /v1/security/users` (Update)
+- `PUT /v1/capabilities/{capabilityId}` (Update)
+- `PUT /v1/repositories/cargo/group/{repositoryName}` (Update)
+- `PUT /v1/repositories/cargo/hosted/{repositoryName}` (Update)
+- `PUT /v1/repositories/cargo/proxy/{repositoryName}` (Update)
+- `PUT /v1/repositories/docker/group/{repositoryName}` (Update)
+- `PUT /v1/repositories/docker/hosted/{repositoryName}` (Update)
+- `PUT /v1/repositories/docker/proxy/{repositoryName}` (Update)
+- `PUT /v1/repositories/npm/group/{repositoryName}` (Update)
+- `PUT /v1/repositories/npm/hosted/{repositoryName}` (Update)
+- `PUT /v1/repositories/npm/proxy/{repositoryName}` (Update)
+- `PUT /v1/repositories/nuget/group/{repositoryName}` (Update)
+- `PUT /v1/repositories/nuget/hosted/{repositoryName}` (Update)
+- `PUT /v1/repositories/nuget/proxy/{repositoryName}` (Update)
+- `PUT /v1/security/anonymous` (Update)
+- `PUT /v1/security/content-selectors/{name}` (Update)
+- `PUT /v1/security/privileges/repository-content-selector/{privilegeName}` (Update)
+- `PUT /v1/security/privileges/repository-view/{privilegeName}` (Update)
+- `PUT /v1/security/realms/active` (Update)
+- `PUT /v1/security/roles/{id}` (Update)
+- `PUT /v1/security/users/{userId}` (Update)
+- `PUT /v1/security/users/{userId}/change-password` (Update)
 
 </details>
 

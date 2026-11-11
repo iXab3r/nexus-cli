@@ -1,0 +1,366 @@
+{
+  "baseline": "3.96.3-01",
+  "scope": "Current source including #677; package version remains 0.3.0; not a release or live qualification",
+  "operations": [
+    {
+      "operation": "DELETE /v1/assets/{id}",
+      "permission": "Update"
+    },
+    {
+      "operation": "DELETE /v1/components/{id}",
+      "permission": "Update"
+    },
+    {
+      "operation": "DELETE /v1/repositories/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "DELETE /v1/security/content-selectors/{name}",
+      "permission": "Update"
+    },
+    {
+      "operation": "DELETE /v1/security/privileges/{privilegeName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "DELETE /v1/security/roles/{id}",
+      "permission": "Update"
+    },
+    {
+      "operation": "DELETE /v1/security/users/{userId}",
+      "permission": "Update"
+    },
+    {
+      "operation": "GET /v1/assets",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/assets/{id}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/blobstores",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/blobstores/{name}/quota-status",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/capabilities",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/capabilities/types",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/components",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/components/{id}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/formats/upload-specs",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/formats/{format}/upload-specs",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/http",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/cargo/group/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/cargo/hosted/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/cargo/proxy/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/docker/group/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/docker/hosted/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/docker/proxy/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/npm/group/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/npm/hosted/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/npm/proxy/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/nuget/group/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/nuget/hosted/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/nuget/proxy/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/raw/hosted/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositories/{repositoryName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/repositorySettings",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/search",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/search/assets",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/search/assets/download",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/anonymous",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/content-selectors",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/content-selectors/{name}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/privileges",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/privileges/{privilegeName}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/realms/active",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/realms/available",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/roles",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/roles/{id}",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/security/users",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/status",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "GET /v1/status/writable",
+      "permission": "ReadOnly"
+    },
+    {
+      "operation": "POST /v1/capabilities",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/components",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/cargo/group",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/cargo/hosted",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/cargo/proxy",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/docker/group",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/docker/hosted",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/docker/proxy",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/npm/group",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/npm/hosted",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/npm/proxy",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/nuget/group",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/nuget/hosted",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/nuget/proxy",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/repositories/raw/hosted",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/security/content-selectors",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/security/privileges/repository-content-selector",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/security/privileges/repository-view",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/security/roles",
+      "permission": "Update"
+    },
+    {
+      "operation": "POST /v1/security/users",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/capabilities/{capabilityId}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/cargo/group/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/cargo/hosted/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/cargo/proxy/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/docker/group/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/docker/hosted/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/docker/proxy/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/npm/group/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/npm/hosted/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/npm/proxy/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/nuget/group/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/nuget/hosted/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/repositories/nuget/proxy/{repositoryName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/anonymous",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/content-selectors/{name}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/privileges/repository-content-selector/{privilegeName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/privileges/repository-view/{privilegeName}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/realms/active",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/roles/{id}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/users/{userId}",
+      "permission": "Update"
+    },
+    {
+      "operation": "PUT /v1/security/users/{userId}/change-password",
+      "permission": "Update"
+    }
+  ]
+}

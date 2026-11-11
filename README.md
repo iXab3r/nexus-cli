@@ -13,10 +13,10 @@ nexus-cli repositories list --profile lab
 | | |
 |---|---|
 | **Artifact work, end to end** | Search with every query parameter of the pinned API (`--filter`), download by asset ID, search match or repository path, publish raw files and Maven artifacts (generated or original POM), delete by exact ID. |
-| **Read-only by default** | A fresh profile can only read. Uploads, deletes and repository creation need `permissions grant Update` for that profile, and a delete also needs `--confirm-id` with the exact ID. |
+| **Read-only by default** | A fresh profile can only read. Uploads, deletes and repository creation need `permissions grant Update` for that profile, and a delete also needs exact `--confirm-id` or `--confirm-name` confirmation. |
 | **Safe transfers** | A download never overwrites an existing file, stops at 1 GiB unless `--max-bytes` says otherwise, and with `--sha256` the bytes are checked before the file appears. Uploads stream from disk. |
 | **Cheap for agents** | `--json` everywhere, one bounded page per call (`--all` stops at 100 pages or 10,000 items and says where to resume), stable error codes, and a persistent `--json-rpc` session without restarting Node. |
-| **No leaked secrets** | The username and password are read once from stdin and kept in the platform secret store, never in profile JSON, command arguments or environment variables. Errors never include response bodies. |
+| **No leaked secrets** | Profile credentials use stdin and the platform secret store; service mutations use finite JSON files, protected when sensitive. Secrets never enter command arguments. Errors never include response bodies. |
 | **Predictable** | No automatic retries and no local guessing: the CLI never ranks versions or picks a search match for you, and an interrupted upload is reported as `nexus.mutation.outcomeUnknown`, not repeated. |
 
 <picture>
@@ -27,12 +27,11 @@ nexus-cli repositories list --profile lab
 ## Coverage
 
 Share of the 442 REST operations in the pinned Nexus Repository 3.96.3-01 API description each
-tool can call, by API area. `nexus-cli` covers the artifact path first: 20 operations so far, and
-no server administration yet.
+tool can call, by API area. Current nexus-cli source reaches 90 operations (20%), covering artifact transfers plus repository and security administration. This includes #677 changes; the package version remains 0.3.0.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/coverage-matrix-dark.svg">
-  <img src="docs/images/coverage-matrix-light.svg" alt="Coverage matrix: nexus-cli 0.3.0 reaches 20 of 442 operations (5%), including all 9 component, asset and upload-spec operations; the Go n3dr 7.6.0 reaches 23 (5%), mostly repository, user and role creation; the Python nexus3 4.2.1 reaches 18 (4%), mostly blob stores, tasks and scripts; the Go nexus 0.8.0 from sonatype-nexus-community reaches 5 (1%), status and lists">
+  <img src="docs/images/coverage-matrix-light.svg" alt="Coverage matrix: nexus-cli source reaches 90 of 442 operations (20%), including all 9 component, asset and upload-spec operations; the Go n3dr 7.6.0 reaches 23 (5%), mostly repository, user and role creation; the Python nexus3 4.2.1 reaches 18 (4%), mostly blob stores, tasks and scripts; the Go nexus 0.8.0 from sonatype-nexus-community reaches 5 (1%), status and lists">
 </picture>
 
 Numbers, method and caveats: [coverage comparison](docs/coverage-comparison.md).

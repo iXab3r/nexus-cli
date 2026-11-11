@@ -48,3 +48,14 @@ Token endpoint is assumed. Other versions/editions and real-service write entitl
 by this offline contract. Runtime 401/403/404 stays an explicit failure. The source protocol acceptance
 and local artifact delivery authorization are recorded in #677; publication and live key access require
 separate owner authorization.
+
+## Live qualification limitation
+
+Two separately authorized live self-export invocations on the frozen delivery artifact stopped
+at `nexus.key.reauthenticationFailed`, before ticket encoding and before any internal key GET/DELETE.
+The HTTP-200 JSON response did not satisfy at least one envelope/ticket predicate. Its response shape
+was not retained, so this does not establish a credential failure, an object/array mismatch or another
+implementation root cause. Successful Basic native publication does not qualify the separate reauth
+operation. Offline mocks return the expected envelope themselves; they do not replace this missing
+live evidence. Self-key lifecycle remains unqualified live. No retry, revoke, rotate or reset follows
+from this observation; those actions require their own explicit authorization.
