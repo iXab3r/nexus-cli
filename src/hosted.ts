@@ -1,3 +1,4 @@
+import { repositoryFormats } from "./repository-administration.js";
 import { CliError, command, Permission, recordView } from "@eyeauras/cli-factory";
 import { pathSegment } from "./client.js";
 import { document, mutate } from "./mutations.js";
@@ -32,6 +33,7 @@ function project(r: any) {
     };
 }
 export const hostedCommand = command("hosted", "Manage hosted repositories", [
+    ...repositoryFormats("hosted"),
     command("raw", "Manage raw hosted repositories", [
         command("get <name>", "Inspect raw hosted settings", async ({ args }, c) => project(await document(c, path + "/" + pathSegment(String(args.name)))), {
             permission: Permission.ReadOnly,

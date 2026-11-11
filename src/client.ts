@@ -75,7 +75,7 @@ export interface Repository {
   url: string | null;
   online: boolean | null;
   size?: number | string;
-  attributes?: { proxy?: { remoteUrl?: string | null } };
+  attributes?: { proxy?: { remoteUrl?: string | null }; group?: { memberNames: string[] } };
 }
 /** Nexus URL results expose a location, excluding credential-bearing URL components. */
 function repositoryUrl(value: string): string | null {
@@ -127,6 +127,7 @@ function repository(value: unknown): Repository {
 export async function repositories(
   context: CommandContext,
   name?: string,
+  includeGroupMembers = false,
 ): Promise<Repository[] | Repository> {
   const path = "repositories" + (name === undefined ? "" : "/" + pathSegment(name));
   const response = await checked(context, path);
@@ -146,11 +147,40 @@ export async function repositories(
       cause: diagnosticCause(cause, resourceRedactions(String(context.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path, response.url, name), "Invalid or incomplete JSON response."),
     });
   }
-  if (name !== undefined) return repository(data);
+  if (name !== undefined) {
+    const result = repository(data);
+    if (includeGroupMembers) await groupMembers(context, [result]);
+    return result;
+  }
   if (!Array.isArray(data) || data.length > 1000)
     throw new CliError(
       "Nexus repository list exceeds its shape or item limit.",
       { code: "nexus.decodeFailed" },
     );
-  return data.map(repository);
+  const result = data.map(repository);
+  if (includeGroupMembers) await groupMembers(context, result);
+  return result;
+}
+
+/** Generic RepositoryXO omits group details; native settings adapters supply them. */
+async function groupMembers(context: CommandContext, rows: Repository[]) {
+  const groups = rows.filter(row => row.type === "group");
+  if (groups.length === 0) return;
+  const response = await checked(context, "repositorySettings");
+  let settings: any;
+  try {
+    settings = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(
+      await readResponseBody(response, { maxBytes: 4 * 1024 * 1024, signal: context.signal }),
+    ));
+  } catch { invalidRepository(); }
+  if (!Array.isArray(settings) || settings.length > 1000) invalidRepository();
+  for (const row of groups) {
+    const matches = settings.filter((value: any) => value && value.name === row.name);
+    if (matches.length !== 1) invalidRepository();
+    const value = matches[0];
+    if (value.format !== row.format || value.type !== "group" ||
+      !Array.isArray(value.group?.memberNames) ||
+      !value.group.memberNames.every((name: unknown) => typeof name === "string" && /^[a-zA-Z0-9-][a-zA-Z0-9_.-]*$/.test(name))) invalidRepository();
+    row.attributes = { ...row.attributes, group: { memberNames: [...value.group.memberNames] } };
+  }
 }

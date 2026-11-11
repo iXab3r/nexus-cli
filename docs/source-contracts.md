@@ -131,3 +131,29 @@ Reserve the unclassified pom tuple and reject duplicate normalized suffix pairs.
 Validate every local file before POST using the existing file-backed upload rules.
 Prepared compound-extension signatures remain opaque assets, not a signing or
 verification feature. One request does not imply transactional publication.
+
+## Distribution response and internal-key contracts
+
+The selected 3.97.0-13 source revision is `76b8303954ef1296507631aaabb69f980069a163`;
+public request DTOs remain reproducibly pinned in the 3.96.3-01 OpenAPI. Read and write shapes
+must remain distinct where the actual source differs. In the official 3.97.0-13 NuGet binary,
+`NugetApiRepositoryAdapter.adapt(proxy)` calls `getHostedStorageAttributes`, passing that subtype
+to `NugetProxyApiRepository` through the `StorageAttributes` parameter. Consequently a proxy GET
+exposes `storage.writePolicy`, whereas its proxy mutation DTO does not represent that setting.
+The CLI retains this read-only observation and rejects it in proxy mutation input. Nullable
+connection/default fields remain observations rather than invented configuration values.
+
+[ProxyAttributes](https://github.com/sonatype/nexus-public/blob/76b8303954ef1296507631aaabb69f980069a163/public/common/components/nexus-repository-services/src/main/java/org/sonatype/nexus/repository/rest/api/model/ProxyAttributes.java)
+and the matching `ProxyRepositoryApiRequestToConfigurationConverter.convertProxy` preserve
+`preserveEncodedCharacters`; its boolean constructor default is false. That field already exists
+in the pinned public request schema and is preserved in proxy get/create/update.
+
+The [repository privilege descriptor](https://github.com/sonatype/nexus-public/blob/76b8303954ef1296507631aaabb69f980069a163/public/common/components/nexus-repository-services/src/main/java/org/sonatype/nexus/repository/security/RepositoryViewPrivilegeDescriptor.java)
+generates built-in IDs containing wildcard portions. The public privilege-name creation regex
+is therefore not a grammar for all readable server identifiers. Reads accept actual nonempty
+privilege names while mutation input retains the source creation constraint.
+
+[NuGet key protocol](nuget-key-protocol.md) records the official image/layer/JAR digests,
+principal-bound one-use reauthentication ticket, state-creating GET and DELETE replacement
+semantics. Those internal operations are outside the public Swagger inventory. Static source
+evidence is not a live mutation or permission-entitlement claim.

@@ -1,48 +1,226 @@
 {
   "matrix": {
     "columns": [
-      { "title": "nexus-cli 0.3.0", "subtitle": "this package" },
-      { "title": "n3dr 7.6.0", "subtitle": "Go, 030/n3dr" },
-      { "title": "nexus3 4.2.1", "subtitle": "Python nexus3-cli" },
-      { "title": "nexus 0.8.0", "subtitle": "Go, Sonatype community" }
+      {
+        "title": "nexus-cli source",
+        "subtitle": "0.3.0 + #677"
+      },
+      {
+        "title": "n3dr 7.6.0",
+        "subtitle": "Go, 030/n3dr"
+      },
+      {
+        "title": "nexus3 4.2.1",
+        "subtitle": "Python nexus3-cli"
+      },
+      {
+        "title": "nexus 0.8.0",
+        "subtitle": "Go, Sonatype community"
+      }
     ],
     "rowHeader": "API area",
     "countHeader": "operations",
     "legend": "Share of official REST operations reachable",
-    "ariaLabel": "REST API coverage matrix: nexus-cli 0.3.0 reaches 20 of 442 operations, n3dr 7.6.0 reaches 23, nexus3 4.2.1 reaches 18, the sonatype-nexus-community nexus 0.8.0 reaches 5",
+    "ariaLabel": "REST API coverage matrix: nexus-cli source reaches 90 of 442 operations, n3dr 7.6.0 reaches 23, nexus3 4.2.1 reaches 18, the sonatype-nexus-community nexus 0.8.0 reaches 5",
     "rows": [
-      { "name": "Components, assets, upload specs", "total": 9, "values": [9, 2, 2, 1] },
-      { "name": "Search", "total": 6, "values": [3, 0, 1, 0] },
-      { "name": "Repositories: list, inspect, browse", "total": 10, "values": [2, 2, 1, 1] },
-      { "name": "Hosted repository settings", "total": 69, "values": [2, 7, 0, 0] },
-      { "name": "Proxy repository settings", "total": 75, "values": [0, 4, 0, 0] },
-      { "name": "Group repository settings", "total": 63, "values": [0, 1, 0, 0] },
-      { "name": "Blob stores and data store", "total": 23, "values": [2, 0, 6, 0] },
-      { "name": "Status, nodes, support, recovery", "total": 23, "values": [2, 0, 0, 3] },
-      { "name": "Tasks, scripts, capabilities", "total": 20, "values": [0, 0, 8, 0] },
-      { "name": "Cleanup, routing, selectors, tags", "total": 24, "values": [0, 0, 0, 0] },
-      { "name": "Users, roles, privileges, tokens", "total": 39, "values": [0, 6, 0, 0] },
-      { "name": "LDAP, SAML, Crowd, realms", "total": 29, "values": [0, 1, 0, 0] },
-      { "name": "Certificates, encryption, network", "total": 24, "values": [0, 0, 0, 0] },
-      { "name": "Firewall, license, instance config", "total": 28, "values": [0, 0, 0, 0] }
+      {
+        "name": "Components, assets, upload specs",
+        "total": 9,
+        "values": [
+          9,
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "name": "Search",
+        "total": 6,
+        "values": [
+          3,
+          0,
+          1,
+          0
+        ]
+      },
+      {
+        "name": "Repositories: list, inspect, browse",
+        "total": 10,
+        "values": [
+          4,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Hosted repository settings",
+        "total": 69,
+        "values": [
+          14,
+          7,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Proxy repository settings",
+        "total": 75,
+        "values": [
+          12,
+          4,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Group repository settings",
+        "total": 63,
+        "values": [
+          12,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Blob stores and data store",
+        "total": 23,
+        "values": [
+          2,
+          0,
+          6,
+          0
+        ]
+      },
+      {
+        "name": "Status, nodes, support, recovery",
+        "total": 23,
+        "values": [
+          2,
+          0,
+          0,
+          3
+        ]
+      },
+      {
+        "name": "Tasks, scripts, capabilities",
+        "total": 20,
+        "values": [
+          4,
+          0,
+          8,
+          0
+        ]
+      },
+      {
+        "name": "Cleanup, routing, selectors, tags",
+        "total": 24,
+        "values": [
+          5,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Users, roles, privileges, tokens",
+        "total": 39,
+        "values": [
+          19,
+          6,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "LDAP, SAML, Crowd, realms",
+        "total": 29,
+        "values": [
+          3,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Certificates, encryption, network",
+        "total": 24,
+        "values": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Firewall, license, instance config",
+        "total": 28,
+        "values": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
     ],
-    "total": { "name": "All operations", "total": 442, "values": [20, 23, 18, 5] }
+    "total": {
+      "name": "All operations",
+      "total": 442,
+      "values": [
+        90,
+        23,
+        18,
+        5
+      ]
+    }
   },
   "flow": {
     "ariaLabel": "People, AI agents, scripts and CI jobs use one nexus-cli command tree, which applies profiles, the secret store, a permission gate, transfer limits and error scrubbing before calling the Nexus Repository REST API",
     "callers": [
-      { "title": "People", "sub": "readable tables and records" },
-      { "title": "AI agents and scripts", "sub": "--json  ·  --json-rpc" },
-      { "title": "CI jobs", "sub": "credentials on stdin" }
+      {
+        "title": "People",
+        "sub": "readable tables and records"
+      },
+      {
+        "title": "AI agents and scripts",
+        "sub": "--json  ·  --json-rpc"
+      },
+      {
+        "title": "CI jobs",
+        "sub": "credentials on stdin"
+      }
     ],
-    "product": { "title": "nexus-cli", "sub": "one command tree, 22 service commands" },
+    "product": {
+      "title": "nexus-cli",
+      "sub": "one command tree, profiles and permissions"
+    },
     "layers": [
-      { "title": "Profiles", "sub": "several servers, isolated settings" },
-      { "title": "Secret store", "sub": "credentials never in arguments" },
-      { "title": "Permission gate", "sub": "ReadOnly on · Update off until granted", "accent": true },
-      { "title": "Bounded transfers", "sub": "page and byte limits, SHA256 check" },
-      { "title": "Error scrubbing", "sub": "no response bodies or credentials" }
+      {
+        "title": "Profiles",
+        "sub": "several servers, isolated settings"
+      },
+      {
+        "title": "Secret store",
+        "sub": "credentials never in arguments"
+      },
+      {
+        "title": "Permission gate",
+        "sub": "ReadOnly on · Update off until granted",
+        "accent": true
+      },
+      {
+        "title": "Bounded transfers",
+        "sub": "page and byte limits, SHA256 check"
+      },
+      {
+        "title": "Error scrubbing",
+        "sub": "no response bodies or credentials"
+      }
     ],
-    "service": { "title": "Nexus Repository API", "sub": "20 of 442 REST operations" }
+    "service": {
+      "title": "Nexus Repository API",
+      "sub": "90 of 442 REST operations"
+    }
   }
 }

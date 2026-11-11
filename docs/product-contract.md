@@ -76,3 +76,16 @@ starts has unknown remote outcome. There is no automatic retry. Only HTTP 204
 acknowledges a mutation; it supplies no new component ID, atomicity or rollback
 proof. Maven may generate POM/checksum assets; repository-level edit permission
 is recommended for that workflow (see source contracts).
+
+## Distribution administration extension
+
+The distribution administration contract adds Cargo/NuGet/npm/Docker hosted/proxy/group get/create/update,
+anonymous access, ordered realms, actual Default Role capabilities, users/roles/complete privileges and
+content selectors. See [repository administration](distribution-administration.md),
+[security administration](security-administration.md) and [NuGet self-service keys](nuget-key-protocol.md).
+Service mutations use finite JSON files and explicit local permission gates. Native package clients
+continue to own publication/download; no native publishing wrapper or arbitrary administrative HTTP
+escape hatch is provided. The NuGet internal key protocol is selected for 3.97.0-13 Community by
+source/binary evidence, with live entitlement separately authorized. Existing non-indexed component/asset
+browse and exact-ID operations are available for bounded consumer outcome proofs; an empty indexed
+search alone never establishes absence after an uncertain native write.

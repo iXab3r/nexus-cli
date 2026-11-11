@@ -1,3 +1,6 @@
+import { systemCommand } from "./system-http.js";
+import { securityCommand } from "./security.js";
+import { repositoryFormats, repositoryDeleteCommand } from "./repository-administration.js";
 import { downloadCommand } from "./downloads.js";
 import { hostedCommand } from "./hosted.js";
 import { blobstoresCommand, formatsCommand } from "./discovery.js";
@@ -30,7 +33,9 @@ const repositoryFields = [
     const url = r.attributes?.proxy?.remoteUrl;
     return url === undefined ? "not reported" : url === null ? "not displayable" : url === "" ? "(empty)" : repositoryText(url);
   } },
+  { label: "Group members", value: (r: Repository) => r.attributes?.group?.memberNames.map(repositoryText).join(", ") ?? "not requested" },
 ];
+const groupMemberOption = [{ flags: "--include-group-members", description: "Read ordered group members from native repository settings" }];
 /** One command tree for terminal, JSON and persistent RPC callers. */
 export function createDefinition(): CliDefinition {
   return {
@@ -69,6 +74,8 @@ export function createDefinition(): CliDefinition {
     permissions: {},
     commands: [
       ...readCommands,
+      securityCommand,
+      systemCommand,
       command("content", "Retrieve known repository content", [downloadCommand(false, true)]),
       blobstoresCommand,
       formatsCommand,
@@ -91,13 +98,17 @@ export function createDefinition(): CliDefinition {
         },
       ),
       command("repositories", "Inspect visible repositories", [
+        repositoryDeleteCommand,
         hostedCommand,
+        command("proxy", "Manage proxy repositories", repositoryFormats("proxy")),
+        command("group", "Manage repository groups", repositoryFormats("group")),
         command(
           "list",
           "List visible repositories",
-          (_input, c) => repositories(c),
+          ({ options }, c) => repositories(c, undefined, options.includeGroupMembers === true),
           {
             permission: Permission.ReadOnly,
+            options: groupMemberOption,
             view: tableView<Repository>({
               columns: repositoryFields.map(({ label, value }) => ({ header: label, value })),
               empty: "No visible repositories.",
@@ -107,9 +118,10 @@ export function createDefinition(): CliDefinition {
         command(
           "get <name>",
           "Inspect one repository",
-          ({ args }, c) => repositories(c, String(args.name)),
+          ({ args, options }, c) => repositories(c, String(args.name), options.includeGroupMembers === true),
           {
             permission: Permission.ReadOnly,
+            options: groupMemberOption,
             view: recordView<Repository>({
               fields: repositoryFields,
             }),

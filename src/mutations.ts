@@ -25,7 +25,7 @@ export async function mutate(
   method: string,
   body?: FormData | string,
   expectedStatus = 204,
-  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven" } = { operation: "Mutate Nexus metadata" },
+  diagnostic: { operation: string; repository?: string; upload?: "raw" | "maven"; redactions?: string[]; contentType?: string; exactResponse?: boolean } = { operation: "Mutate Nexus metadata" },
 ) {
   const raw =
     c.profile.values.authMode === "anonymous"
@@ -33,29 +33,42 @@ export async function mutate(
       : await c.secrets.require("credentials");
   const headers: Record<string, string> = { Accept: "application/json" };
   if (raw) headers.Authorization = authorization(raw);
-  if (typeof body === "string") headers["Content-Type"] = "application/json";
+  if (typeof body === "string") headers["Content-Type"] = diagnostic.contentType ?? "application/json";
   const url = String(c.profile.values.url).replace(/\/$/, "") + "/service/rest/v1/" + path;
   let response: Response;
   try {
-    response = await fetchWithRedirects(
+    response = diagnostic.exactResponse ? await c.fetch(url, { method, headers, body, signal: c.signal, redirect: "manual" }) : await fetchWithRedirects(
       c.fetch,
       url,
       { method, headers, body, signal: c.signal },
     );
   } catch (cause) {
     throw new CliError(
-      operationContext(diagnostic.operation, diagnostic.repository) + ": Nexus mutation outcome is unknown. Remote changes may have occurred.",
+      operationContext(diagnostic.operation, diagnostic.repository) + ": Nexus mutation outcome is unknown. Remote changes may have occurred. Reconcile state before retrying.",
       {
         code: "nexus.mutation.outcomeUnknown",
         cause: diagnosticCause(
           cause,
-          [...resourceRedactions(url, readResource(path), diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
+          [...(diagnostic.redactions ?? []), ...resourceRedactions(url, readResource(path), diagnostic.repository), ...(raw ? [raw, JSON.parse(raw).password, headers.Authorization!] : [])],
         ),
       },
     );
   }
   // Cancellation can await an unread cloned stream; acknowledgment needs only status.
   void response.body?.cancel().catch(() => undefined);
+  if (diagnostic.exactResponse && response.status >= 300 && response.status < 400)
+    throw new CliError(
+      operationContext(diagnostic.operation, diagnostic.repository) +
+        ": Nexus returned a redirect instead of the expected acknowledgment. Remote changes may have occurred. Reconcile state before retrying.",
+      { code: "nexus.mutation.acknowledgementUnknown" },
+    );
+  if (response.status !== expectedStatus && response.status >= 200 && response.status < 300)
+    throw new CliError(
+      operationContext(diagnostic.operation, diagnostic.repository) +
+        ": Nexus returned unexpected success HTTP " + response.status +
+        "; the expected acknowledgment was not received. Remote changes may have occurred. Reconcile state before retrying.",
+      { code: "nexus.mutation.acknowledgementUnknown" },
+    );
   if (response.status !== expectedStatus)
     throw new HttpError(
       response.status,
