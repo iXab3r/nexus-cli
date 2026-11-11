@@ -16,6 +16,7 @@ Read the relevant pinned contracts before changing their surfaces:
 - [Integration authoring](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/integrations.md)
 - [Offline tests and sanitization](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/testing.md)
 - [CLI writer](https://github.com/iXab3r/EyeAuras.CliFactory/blob/c313194f8cd22547dae6ae8693a2771f3a5066f0/docs/roles/cli-writer.md) for every terminal-facing text
+- [Product README skill](https://github.com/iXab3r/EyeAuras.CliFactory/tree/main/.claude/skills/product-readme) for the README overview, coverage matrix and pictures; see [updating](docs/coverage-comparison.md#updating)
 
 These framework laws apply here. Links are required reading, not copied local implementations.
 Framework repository paths describe its ownership; this repository owns only the Nexus product.
