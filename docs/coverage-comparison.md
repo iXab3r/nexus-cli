@@ -69,6 +69,53 @@ Percent of operations reachable, with the count in brackets.
 | Firewall, license, instance config | 28 | 0% (0) | 0% (0) | 0% (0) | 0% (0) |
 | **All operations** | **442** | **20% (90)** | **5% (23)** | **4% (18)** | **1% (5)** |
 
+<!-- repository-coverage:start -->
+## Repository format coverage
+
+Current source reachability of format-specific repository administration operations in the same
+frozen specification. Denominators differ: not every format has a group or hosted API.
+A cell counts exact native method/path pairs (typically GET, POST/create and PUT/update).
+
+| Format | Hosted | Proxy | Group | Total |
+|---|---:|---:|---:|---:|
+| cargo | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| docker | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| npm | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| nuget | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| raw | 67% (2/3) | 0% (0/3) | 0% (0/3) | 22% (2/9) |
+| alpine | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| ansiblegalaxy | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| apt | 0% (0/3) | 0% (0/3) | — | 0% (0/6) |
+| cocoapods | — | 0% (0/3) | — | 0% (0/3) |
+| composer | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| conan | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| conda | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| gitlfs | 0% (0/3) | — | — | 0% (0/3) |
+| go | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| helm | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| huggingface | — | 0% (0/3) | — | 0% (0/3) |
+| maven | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| oci | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| p2 | — | 0% (0/3) | — | 0% (0/3) |
+| pub | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| pypi | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| r | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| rubygems | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| swift | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| terraform | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+| yum | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+
+**All formats: 18% (38/207).** A dash means the pinned API defines no operation for that type;
+it does not mean an unimplemented CLI command. General repository list/get/delete and settings
+reads remain in the separate Repository Management / General count. Security, components/assets,
+raw/Maven transfers and internal credential protocols do not increase these percentages.
+100% is REST reachability, not full DTO-field, edition, permission or live workflow qualification.
+
+Regenerate both tables with `node scripts/repository-coverage.mjs`; verify without writes using
+`node scripts/repository-coverage.mjs --check`. Inputs are inventory.json and cli-reachability.json.
+
+<!-- repository-coverage:end -->
+
 ## By inventory group
 
 Reachable operation counts. Groups are the inventory's tracker roots, with the per-format

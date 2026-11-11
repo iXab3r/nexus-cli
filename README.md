@@ -36,6 +36,23 @@ tool can call, by API area. Current nexus-cli source reaches 90 operations (20%)
 
 Numbers, method and caveats: [coverage comparison](docs/coverage-comparison.md).
 
+<!-- repository-coverage:start -->
+| Format | Hosted | Proxy | Group | Total |
+|---|---:|---:|---:|---:|
+| cargo | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| docker | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| npm | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| nuget | 100% (3/3) | 100% (3/3) | 100% (3/3) | 100% (9/9) |
+| raw | 67% (2/3) | 0% (0/3) | 0% (0/3) | 22% (2/9) |
+| maven | 0% (0/3) | 0% (0/3) | 0% (0/3) | 0% (0/9) |
+
+Other 20 formats: 0/153 format-specific operations. [Full per-format table and counting rules](docs/coverage-comparison.md#repository-format-coverage).
+
+100% here means all pinned format-specific REST operations are reachable, not every setting,
+edition or native-client workflow. Common list/get/delete, security and content transfers are
+counted separately; Maven transfers work even though Maven-specific administration is 0%.
+<!-- repository-coverage:end -->
+
 ## Use it
 
 ```sh
