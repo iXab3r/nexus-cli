@@ -50,7 +50,7 @@ Other 20 formats: 0/153 format-specific operations. [Full per-format table and c
 
 100% here means all pinned format-specific REST operations are reachable, not every setting,
 edition or native-client workflow. Common list/get/delete, security and content transfers are
-counted separately; Maven transfers work even though Maven-specific administration is 0%.
+counted separately from format-specific administration, including raw/Maven artifact transfers.
 <!-- repository-coverage:end -->
 
 ## Use it
